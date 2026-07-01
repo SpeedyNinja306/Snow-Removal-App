@@ -1,0 +1,22 @@
+---
+description: Use at the START of any SR-App task to classify it and load the minimal correct set of rules.
+globs:
+alwaysApply: false
+---
+
+# Task Intake (SR-App)
+
+Detailed reference: `docs/steering/process/task-intake.md`. Operationalizes AGENTS.md +
+`docs/steering/_loading-strategy.md`.
+
+**Steps**
+1. **Classify** — which surface (field/admin/owner), which feature(s), which layer (schema/action/UI/test)?
+2. The **always-apply foundation rules** are already loaded (product-goal, non-goals, architecture-principles, code-quality, decision-log-policy).
+3. **Open `docs/steering/_loading-strategy.md`** → find your row in the Task Routing Matrix → load exactly the rules it lists.
+4. **Do NOT bulk-load** all rules. If your task isn't in the matrix, pick the nearest row, load conservatively, note the deviation.
+5. **Check dependencies** — follow a rule's `dependsOn` only when actually relevant.
+6. **Identify decision points** up front; plan an ADR if you'll guess something architectural/product.
+7. **State your plan** (scope, files, rules consulted) before large changes.
+
+**Rules:** never edit code before classifying + loading routed rules; never expand scope silently;
+if rules conflict/are wrong, follow priority, then log a decision + fix the rule.

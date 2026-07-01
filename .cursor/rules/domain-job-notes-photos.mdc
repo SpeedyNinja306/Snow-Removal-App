@@ -1,0 +1,22 @@
+---
+description: Use when adding job notes or photo/media attachments, or modeling the note/media schema in SR-App.
+globs: **/notes/**,**/photos/**,**/media/**
+alwaysApply: false
+---
+
+# Job Notes & Photos (SR-App)
+
+Detailed reference: `docs/steering/domain/job-notes-photos.md`. Upload mechanics: see file-upload rule.
+
+**Hard rules**
+- A **Note** belongs to a Job: author, body, `createdAt`, optional type `GENERAL|INTERNAL|CUSTOMER_VISIBLE` (default GENERAL). Append-only; corrections are new notes (soft-edit allowed only if audited).
+- A **Photo/Media** belongs to a Job: uploaded via **presigned URL**; stores object key, content type, size, thumbnail ref, author, `createdAt`, optional caption.
+- **Binaries never pass through the app server** — client uploads direct to storage; server stores only metadata.
+- **Authorization:** field agents attach/read notes+photos only on **their own** jobs; admin/owner any. `INTERNAL` notes never appear in customer-facing output (e.g. invoices).
+- **Validate uploads** server-side (accepted image types + max size) when issuing the presigned URL; reject executables/unexpected types.
+- **No hard deletes** of job media by default — soft-delete/hide with audit; deletions audited.
+- Offline: photo capture + note creation are in the supported offline write set; queue with real capture time.
+
+**Guidance:** generate a thumbnail for lists, lazy-load full images; note entry = single quick field, photo = camera-first.
+
+**DoD:** notes+photos attach with correct authorship/scoping; photos upload via presigned URLs w/ server-side type/size validation + thumbnails; internal notes stay internal; offline capture queues w/ real timestamps; deletions soft + audited.

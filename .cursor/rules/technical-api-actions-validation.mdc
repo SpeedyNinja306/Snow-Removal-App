@@ -1,0 +1,28 @@
+---
+description: Use when writing a Server Action or Route Handler, or adding input validation, in SR-App.
+globs: **/actions.ts,**/actions/**,app/api/**,**/lib/**/schemas.ts
+alwaysApply: false
+---
+
+# API, Actions & Validation (SR-App)
+
+Detailed reference: `docs/steering/technical/api-actions-validation.md`.
+
+**Mutation checklist (every action/handler, in order):**
+1. **Authenticate** — resolve session; reject if none.
+2. **Authorize** — role + resource ownership BEFORE any work.
+3. **Validate** — parse input with a **Zod schema**; reject invalid with field errors.
+4. **Execute** — delegate to `lib/<feature>`, inside a **transaction** if multi-row.
+5. **Audit** — if auditable, in the same transaction.
+6. **Return** a typed result and **`revalidate`** affected paths/tags.
+
+**Contract rules**
+- Server Actions are `"use server"` and return a **discriminated result** `{ ok:true, data } | { ok:false, error, fieldErrors? }` — don't throw raw errors for expected failures.
+- **Shared Zod schemas** between client form + server action, in `lib/<feature>/schemas.ts`.
+- Route Handlers (uploads/webhooks) validate + auth the same way; webhooks verify signatures.
+- **Never trust client-sent** resource ids the user shouldn't reach, totals, durations, roles, or event timestamps — recompute/authorize server-side.
+- **Idempotency:** financial/destructive actions (finalize invoice, record payment) safe against double-submit (state guard + unique constraints).
+
+**Guidance:** one action = one intent (`createJob`, `transitionJob`, `recordPayment`); centralize `getSession`/`requireRole`/`requireOwnerOfJob`/result helpers.
+
+**DoD:** every mutation follows auth→authz→validate→execute→audit→revalidate; shared Zod; typed results; financial/destructive actions idempotent; unauthorized/invalid paths tested.

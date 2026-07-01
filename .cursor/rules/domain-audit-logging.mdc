@@ -1,0 +1,31 @@
+---
+description: Use when adding audit logging to an action, modeling the audit event schema, or reviewing which events must be audited in SR-App.
+globs: **/lib/audit/**,**/audit/**
+alwaysApply: false
+---
+
+# Audit Logging (SR-App)
+
+Detailed reference: `docs/steering/domain/audit-logging.md`. Immutable trail of who did what, when —
+for the significant actions, not everything.
+
+**Required auditable events (minimum):**
+- Auth/roles: login success/failure, logout, role change, user activate/deactivate.
+- Jobs: create, status transition (from→to + reason), assignment/reassignment (agent + truck).
+- Invoices: finalize, void, post-final correction.
+- Payments: record, reverse, **overpayment recorded** (`payment.overpayment_recorded` when `amountPaid` > grand total — metadata: `{ overpaidDeltaCents, grandTotalCents, amountPaidCents }` per ADR-014).
+- Media/notes: delete/hide.
+- Location: tracking permission grant/deny, tracking enable/disable (coarse — NOT individual pings).
+
+**Minimum metadata:** `id`, `occurredAt` (UTC server time), `actorUserId`|`system`, `actorRole`,
+`action`, `entityType`, `entityId`, `summary`, small structured `metadata` ({from,to,reason}); IP/UA for auth events.
+
+**Hard rules**
+- Audit records are **append-only + immutable** (never updated/deleted).
+- Audit writes happen in the **same transaction** as the change; never audit from the client.
+- **Never log secrets** (passwords, card data, tokens, unnecessary PII).
+- A failed mandatory audit for a critical action **fails the operation**.
+
+**Guidance:** central `lib/audit/record(event)` called inside feature actions within their transaction; admin/owner read-only audit view.
+
+**DoD:** required events audited transactionally w/ minimum metadata; records immutable; no secrets logged; admin can review the trail.

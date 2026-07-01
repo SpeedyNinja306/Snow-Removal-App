@@ -1,0 +1,24 @@
+---
+description: Use when finishing any SR-App task to verify the universal completion gate before calling it done.
+globs:
+alwaysApply: false
+---
+
+# Definition of Done (SR-App)
+
+Detailed reference: `docs/steering/process/definition-of-done.md`. A change is DONE only when ALL apply:
+
+- [ ] **Scope** — does exactly what the task asked; no unrequested scope creep.
+- [ ] **Foundation** — respects product-goal, non-goals, architecture-principles, code-quality.
+- [ ] **Feature rules** — satisfies the DoD of each routed domain rule.
+- [ ] **Security** — session + role + row-scope enforced server-side; unauthorized path tested.
+- [ ] **Validation** — all inputs Zod-validated; invalid returns field errors.
+- [ ] **Data** — schema change (if any) followed schema-change-policy; migration + seed updated.
+- [ ] **Audit** — required events audited transactionally.
+- [ ] **Tests** — authz, state, money, validation, audit + negative cases pass; critical flow has E2E.
+- [ ] **Types/lint** — typecheck + lint clean; no dead code; no stray `any`/TODO without a ref.
+- [ ] **Config** — `.env.example` updated for any new var; no secrets committed/client-exposed.
+- [ ] **Honesty** — no stubs/mocks presented as complete; MVP limits stated; nothing overclaimed (offline/GPS/telematics).
+- [ ] **Decisions** — ambiguity/architectural choices recorded as ADRs; affected rules updated.
+
+**Rule:** if any box is unchecked, the change is NOT done — say so explicitly and list what remains.

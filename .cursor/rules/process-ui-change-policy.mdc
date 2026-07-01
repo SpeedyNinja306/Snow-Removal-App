@@ -1,0 +1,21 @@
+---
+description: Use when changing shared UI or altering field/admin screens in SR-App (keep surfaces consistent, protect the field flow).
+globs:
+alwaysApply: false
+---
+
+# UI Change Policy (SR-App)
+
+Detailed reference: `docs/steering/process/ui-change-policy.md`.
+
+**Hard rules**
+- **Reuse shared components** (`components/ui` shadcn + shared `components/`); don't fork one-off variants.
+- **Field surface changes must preserve the ≤2-tap priority actions** + one-handed action bar; never bury status/notes/photo/time/invoice.
+- **Accessibility baseline** applies to every UI change (labels, contrast, touch targets, text-not-color state).
+- **Don't mix surfaces** — field stays mobile-first; admin density stays out of the field flow.
+- Empty/loading/error states are required for any new data view.
+- Status/state colors follow **one shared mapping** (job status, invoice state, location freshness) — no per-screen schemes.
+
+**Guidance:** extend shared components via props, not duplication; one source for status→label→color.
+
+**DoD:** reuses shared components; preserves field priority actions + a11y baseline; provides empty/loading/error states; uses the shared status color/label mapping.

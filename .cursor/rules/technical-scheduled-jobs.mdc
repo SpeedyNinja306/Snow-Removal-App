@@ -1,0 +1,24 @@
+---
+description: Use when adding Vercel Cron jobs or CRON_SECRET-protected /api/cron/* route handlers in SR-App.
+globs: app/api/cron/**,vercel.json
+alwaysApply: false
+---
+
+# Scheduled Jobs — Vercel Cron (SR-App)
+
+Detailed reference: `docs/steering/technical/scheduled-jobs.md`. Scheduler = **Vercel Cron** (ADR-016).
+
+**Hard rules**
+- Cron config in root **`vercel.json`** `crons` array. Handlers under `app/api/cron/<job-name>/route.ts`.
+- **Every cron request authenticated via `CRON_SECRET`:** Vercel sends `Authorization: Bearer <CRON_SECRET>`; handler rejects mismatch (401). Secret is server-only.
+- Handlers are **GET-only**, **idempotent**, safe to retry. No session auth — `CRON_SECRET` only.
+- Business logic in `lib/<feature>/` (not inline in the route). Log counts server-side; minimal response body.
+
+**MVP cron jobs (vercel.json):**
+| Route | Schedule | Purpose |
+|---|---|---|
+| `/api/cron/purge-location-pings` | `0 3 * * *` (daily 03:00 UTC) | Delete location pings older than 30 days (ADR-004/016; see `domain-location-tracking`) |
+
+**Local dev:** `curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/purge-location-pings`
+
+**DoD:** `vercel.json` schedule declared; route verifies `CRON_SECRET`; purge logic idempotent + tested; domain rule cross-references this rule.

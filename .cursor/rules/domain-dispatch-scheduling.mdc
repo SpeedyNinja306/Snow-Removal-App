@@ -1,0 +1,26 @@
+---
+description: Use when building the dispatch board, scheduling/assigning jobs, or adding truck assignment to dispatch in SR-App.
+globs: **/dispatch/**,**/schedule/**,app/(admin)/**
+alwaysApply: false
+---
+
+# Dispatch & Scheduling (SR-App)
+
+Detailed reference: `docs/steering/domain/dispatch-scheduling.md`. Admin counterpart to the field surface.
+
+**Capabilities (DISPATCH/OWNER only):** create/schedule jobs; assign/reassign field agent + optional
+truck; change status where permitted; view all jobs filtered by status/agent/date/customer/location;
+see coarse freshness-labeled agent locations for active jobs.
+
+**Hard rules**
+- Dispatch actions are **admin-role gated server-side**; assignment goes through the job status/assignment action (no raw writes).
+- Board must **truthfully label location freshness** ("updated 4 min ago" / "stale") — never imply live tracking.
+- **Manual assignment only** — no auto-routing/optimization (non-goal).
+- Double-booking (same agent, overlapping active jobs) must at least be **surfaced as a warning** (MVP need not hard-block, but must not hide it).
+
+**Board MUST show (MVP):** job id, customer, location, status, scheduled window; assigned agent + truck
+(or "unassigned"); last known location + freshness for EN_ROUTE/IN_PROGRESS; quick filters (status, agent, today/week, customer).
+
+**Guidance:** server-render with filters as URL search params; reuse the same transition/assignment actions; list-first, map view is a secondary tab.
+
+**DoD:** schedule/assign/reassign agents+trucks via validated actions; board shows required fields with truthful freshness; all mutations role-gated + audited.

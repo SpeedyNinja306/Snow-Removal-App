@@ -1,0 +1,26 @@
+---
+description: Hard MVP scope guardrails / non-goals for SR-App. Always applies.
+globs:
+alwaysApply: true
+---
+
+# Non-Goals (SR-App)
+
+Detailed reference: `docs/steering/foundation/non-goals.md`. Anything here is OUT unless a
+decision-log entry explicitly reverses it (reversal is an architectural decision).
+
+**SR-App is NOT (in MVP):**
+- A public customer portal / booking site / marketplace — internal tool only.
+- Real-time fleet **telematics** (no OBD/engine data, live vehicle GPS, background/continuous GPS trails).
+- A full **accounting** system (no GL, tax filing, payroll, A/R aging automation) — invoices + payment recording only.
+- A **native** app — it is a PWA; offline is limited and explicit.
+- A **payment processor** — we record payments; no card capture/gateway in MVP.
+- **Multi-tenant** SaaS — single company.
+- A **routing/optimization** engine — dispatch assigns manually.
+- A full **HR/scheduling** suite — time tracking is per-job labor, not payroll.
+- An **offline-first CRDT** app — offline covers a narrow write set only.
+
+**Failure modes:** sneaking telematics/accounting/gateway complexity under a feature name; implying
+background location a PWA can't guarantee.
+
+**Escalation:** reversing any non-goal REQUIRES a decision-log entry before implementation.

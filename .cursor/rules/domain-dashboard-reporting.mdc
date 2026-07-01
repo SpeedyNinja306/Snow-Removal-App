@@ -1,0 +1,23 @@
+---
+description: Use when building owner/admin dashboards, operational/financial reporting, or the location map view in SR-App.
+globs: **/dashboard/**,**/reports/**,app/(owner)/**
+alwaysApply: false
+---
+
+# Dashboard & Reporting (SR-App)
+
+Detailed reference: `docs/steering/domain/dashboard-reporting.md`. Read-only aggregations; no new source of truth.
+
+**MVP views**
+- **Operational:** jobs by status; scheduled today/this week; jobs by agent; open/overdue; on-hold w/ reasons.
+- **Financial:** outstanding balance (Σ unpaid invoice balances); revenue in a date range (Σ payments); draft/final/paid counts. Money in cents, formatted at edge.
+- **Location map:** latest coarse agent locations for active jobs w/ freshness labels — a secondary map tab.
+
+**Hard rules**
+- Read-only; never mutate; never a second write path.
+- **Numbers reconcile with source** — reuse the SAME derivation functions as invoices/payments (e.g. `balanceDue`); do not re-implement money math.
+- **Role-gated:** financials = OWNER (+DISPATCH where appropriate); never field agents/customers.
+- **Honest location:** obey freshness rules; never imply live tracking.
+- Prefer server-computed aggregates; paginate/limit heavy queries; empty/zero states are first-class.
+
+**DoD:** owner/admin view MVP operational + financial + location as read-only aggregations that reconcile with source modules, are role-gated, handle empty states, and label freshness/date ranges truthfully.

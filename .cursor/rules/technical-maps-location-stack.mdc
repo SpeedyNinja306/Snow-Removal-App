@@ -1,0 +1,22 @@
+---
+description: Use when rendering a map, integrating device geolocation, or adding navigate-to-location in SR-App (MapLibre + MapTiler).
+globs: **/map/**,**/maps/**,**/lib/geo/**
+alwaysApply: false
+---
+
+# Maps & Location Stack (SR-App)
+
+Detailed reference: `docs/steering/technical/maps-location-stack.md`. Freshness/consent/privacy
+semantics are owned by the **location-tracking** rule — this rule must not redefine them.
+
+**Hard rules**
+- **Map rendering: MapLibre GL** with **MapTiler** tiles/styles (ADR-009); tile key = domain-restricted `NEXT_PUBLIC_MAPTILER_KEY`.
+- **Device location: browser Geolocation API only** (`getCurrentPosition`/`watchPosition`). No third-party native location SDKs in MVP.
+- **Navigation is delegated:** "Navigate" opens the device's native maps app via a geo/URL scheme to stored coords — no in-app turn-by-turn.
+- Maps are **client components** (leaf islands); coordinates come from server-fetched persisted data (service locations) or pings.
+- **Geocoding runs server-side via MapTiler and results are persisted** — never geocode per render.
+- Render whatever freshness labels the location-tracking rule mandates.
+
+**Guidance:** one reusable `Map` component (typed props: markers, center, zoom) reused by dispatch board map tab + dashboard map view; wrap Geolocation in `lib/geo` with permission handling + graceful denial; keep tiles/styles env-configurable.
+
+**DoD:** maps render via one reusable MapLibre component fed by persisted coords; device location via Geolocation w/ graceful permission handling; navigate delegates to native maps; freshness/privacy labeling defers to location-tracking.

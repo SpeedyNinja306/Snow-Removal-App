@@ -1,0 +1,26 @@
+---
+description: Use when implementing the offline queue, service worker, or PWA behavior in SR-App (narrow, explicit offline scope).
+globs: **/service-worker*,**/sw.*,**/manifest.*,**/lib/offline/**
+alwaysApply: false
+---
+
+# PWA & Offline Behavior (SR-App)
+
+Detailed reference: `docs/steering/technical/pwa-offline-behavior.md`. Narrow, explicit, honest — not
+offline-first (ADR-007).
+
+**What "offline" means (the contract):**
+- **Offline reads:** the field agent's currently assigned jobs + essential detail (customer, location+coords, notes, existing photo metadata) cached + readable offline.
+- **Offline writes — SUPPORTED SET ONLY:** (1) job status transitions, (2) notes (create), (3) photo capture, (4) time start/stop (real timestamps). Queued locally, show **"pending sync"**, sync on reconnect (+ manual retry).
+
+**NOT guaranteed offline (communicate, don't fake):** invoicing/payment finalization, admin/dispatch surfaces, reporting, map tiles, cross-entity ops = online-only. Best-effort within one device/session; no multi-device merge/CRDT. If cache is evicted, queued items may be lost — surface queue state, sync early.
+
+**Hard rules**
+- **Server re-validates every synced write** (auth, ownership, transition legality, Zod). A queued status change that became illegal fails gracefully + informs the agent — never silently dropped.
+- **Conflict handling:** re-check server-side; on conflict, surface to the agent, don't blind-overwrite.
+- **No silent data loss** — failed sync stays visible with error + retry.
+- Service worker caches app shell + own assigned-job data only, per user; clear on logout.
+
+**Guidance:** small IndexedDB queue in `lib/offline` (typed action records, versioned payloads); photos store blob locally, upload via presigned URL on reconnect; global sync indicator (online/offline + N pending).
+
+**DoD:** assigned-job reads offline; supported write set queues w/ visible pending + syncs w/ server re-validation; conflicts/failures surfaced; UI never claims unsupported offline capability.

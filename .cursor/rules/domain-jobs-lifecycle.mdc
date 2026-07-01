@@ -1,0 +1,36 @@
+---
+description: Use when creating/editing jobs, changing job status, assigning agent/truck, or modeling the job schema in SR-App.
+globs: **/jobs/**,**/lib/jobs/**,**/actions/job*/**
+alwaysApply: false
+---
+
+# Jobs Lifecycle (SR-App)
+
+Detailed reference: `docs/steering/domain/jobs-lifecycle.md`. The **Job** is the system of record.
+
+**Canonical statuses (exact set):** `DRAFT`, `SCHEDULED`, `ASSIGNED`, `EN_ROUTE`, `IN_PROGRESS`,
+`ON_HOLD`, `COMPLETED`, `CANCELED` (terminal), `CLOSED` (terminal).
+
+**Legal transitions (allow-list; all else illegal):**
+- DRAFT → SCHEDULED, ASSIGNED, CANCELED
+- SCHEDULED → ASSIGNED, CANCELED, ON_HOLD
+- ASSIGNED → EN_ROUTE, IN_PROGRESS, ON_HOLD, CANCELED
+- EN_ROUTE → IN_PROGRESS, ON_HOLD, CANCELED
+- IN_PROGRESS → ON_HOLD, COMPLETED, CANCELED
+- ON_HOLD → ASSIGNED, EN_ROUTE, IN_PROGRESS, CANCELED
+- COMPLETED → CLOSED, IN_PROGRESS (reopen)
+- CANCELED / CLOSED → terminal
+**Illegal examples:** anything → DRAFT; CLOSED/CANCELED → anything; DRAFT/SCHEDULED → IN_PROGRESS/COMPLETED; COMPLETED → CLOSED without a finalized invoice.
+
+**Hard rules**
+- One server-side **state machine** (`lib/jobs/status`) enforces legality; illegal transitions rejected with a clear error.
+- **Assignment:** only DISPATCH/OWNER assign/reassign; a field agent advances status only on **their own** job; reassign revokes prior agent access.
+- **Truck assignment** optional + independent of agent assignment.
+- `ON_HOLD` and `CANCELED` require a **reason**. `COMPLETED → CLOSED` requires a **finalized invoice**.
+- Persist timestamps truthfully (`createdAt, scheduledAt, assignedAt, enRouteAt, startedAt, completedAt, canceledAt, closedAt`) — never fabricate.
+- Every status change + (re)assignment is **audited** (actor, from→to, reason).
+
+**Guidance:** Prisma enum matches the set; single `transitionJob(jobId, toStatus, {reason})` action validates role+ownership+legality+side-effects atomically; derive UI actions from the machine.
+
+**DoD:** enum + state machine exist; all transitions go through the one validated action; illegal transitions rejected + tested; timestamps truthful; changes audited.
+Adding/removing a status or changing the allow-list REQUIRES an ADR + coordinated migration.

@@ -1,0 +1,28 @@
+---
+description: Locked tech stack and top-level architecture principles for SR-App. Always applies.
+globs:
+alwaysApply: true
+---
+
+# Architecture Principles (SR-App)
+
+Detailed reference: `docs/steering/foundation/architecture-principles.md`. Changing anything locked
+here REQUIRES a decision-log entry.
+
+**Locked stack (see ADR-001, ADR-002, ADR-008–013):**
+- **Next.js App Router + TypeScript (strict)**, React Server Components first.
+- **PostgreSQL via Prisma** — the only data-access layer. Local dev = docker Postgres; prod = Neon (pooled `DATABASE_URL` + `DIRECT_URL`).
+- **Auth.js (NextAuth v5)**, Credentials provider, argon2id hashing. Roles: `OWNER`, `DISPATCH`, `FIELD_AGENT`.
+- **Server Actions** = primary write path; Route Handlers only for uploads/webhooks/integrations.
+- **Zod** validation at every trust boundary.
+- **Tailwind + shadcn/ui**, mobile-first.
+- **Cloudflare R2** (S3-compatible) object storage via presigned URLs — no binaries through the app server.
+- **MapLibre GL + MapTiler** + browser Geolocation API.
+- **Vitest + Testing Library** (unit/integration), **Playwright** (E2E).
+
+**Cross-cutting principles**
+- **Server-first**; ship minimal client JS (client components only for real interactivity).
+- **Trust boundary = server**: every mutation re-validates (Zod) and re-checks authorization server-side.
+- **Job-centric** data model. Explicit over implicit. Feature-organized code for selective context.
+
+**Failure modes:** a second ORM/data path; client-side authorization; unvalidated actions; silently swapping a locked technology.

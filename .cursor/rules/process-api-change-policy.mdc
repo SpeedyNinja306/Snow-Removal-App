@@ -1,0 +1,20 @@
+---
+description: Use when changing an existing Server Action or Route Handler contract in SR-App (keep callers + offline queue working).
+globs:
+alwaysApply: false
+---
+
+# API / Action Change Policy (SR-App)
+
+Detailed reference: `docs/steering/process/api-change-policy.md`.
+
+**Hard rules**
+- **Prefer additive changes** (new optional input/result fields). Avoid changing/removing existing fields in place.
+- **Breaking a contract** (rename/remove field, change result shape, tighten validation that rejects previously-valid input) requires updating **all callers** in the same change + an ADR if architecturally significant.
+- The **offline queue encodes action payloads** — a breaking change to a queued action's schema must handle **in-flight queued items** (version the payload `v:number` or accept both shapes during transition).
+- Keep the discriminated result shape `{ ok } | { ok:false, error }` consistent across actions.
+- Webhook/route-handler contract changes require signature/version awareness for external callers.
+
+**Guidance:** version queued-action payloads so the sync handler can migrate old items; add-then-migrate.
+
+**DoD:** change is additive OR all callers + queued-payload handling updated; result shape consistent; significant change has an ADR.

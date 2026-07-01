@@ -1,0 +1,25 @@
+---
+description: Use when building the field agent mobile surface (job list/detail, one-handed field workflow) in SR-App.
+globs: app/(field)/**,**/field/**,**/mobile/**
+alwaysApply: false
+---
+
+# Field Agent Mobile Flow (SR-App)
+
+Detailed reference: `docs/steering/domain/field-agent-mobile-flow.md`. Phone, one-handed, gloves, bad
+signal, cold.
+
+**Priority actions (≤2 taps from a job):** (1) job essentials + "navigate", (2) advance status
+EN_ROUTE→IN_PROGRESS→COMPLETED, (3) one-tap time start/stop, (4) add note/photo (camera-first),
+(5) build/finalize invoice + record payment (own job).
+
+**Hard rules**
+- Mobile-first, thumb-reachable primary actions (bottom-anchored, large targets); **no multi-step wizards** on the critical path.
+- **Bad-signal tolerant:** reads use cached assigned-job data offline; supported offline writes (status, note, photo, time start/stop) queue + sync with visible pending state. **Never lose a queued write silently.**
+- Never block the agent on a spinner for non-critical calls; optimistic UI with sync status where safe.
+- Field agents only ever see **their own** jobs.
+- **"Navigate"** opens the device's native maps app to the location coords — no in-app turn-by-turn.
+
+**Guidance:** one scrollable Job Detail with a sticky action bar; default to today's assigned jobs; show "X changes pending sync" when offline writes queued.
+
+**DoD:** assigned → en route → in progress → completed → invoiced → paid all doable on phone, priority actions ≤2 taps, offline reads work, offline write set queues+syncs visibly, no critical action needs a wizard.

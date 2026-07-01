@@ -1,0 +1,24 @@
+---
+description: Use when building the Prisma schema, adding a model/relation, or writing queries/repositories in SR-App.
+globs: prisma/**,**/schema.prisma,**/lib/db/**,**/migrations/**
+alwaysApply: false
+---
+
+# Database — Prisma & Postgres (SR-App)
+
+Detailed reference: `docs/steering/technical/database-prisma-postgres.md`. Migration *process* is in
+the schema-change rule. Local dev = docker Postgres; prod = Neon pooled `DATABASE_URL` + `DIRECT_URL` (ADR-013).
+
+**Hard rules — relational integrity**
+- **Prisma is the only data-access layer.** No raw SQL except vetted parameterized cases (ADR); never concatenate SQL.
+- **Every relation has an explicit FK with a defined `onDelete`.** Default `Restrict` for operational history (jobs, invoices, payments, users) — **prefer soft-delete/deactivate over cascade**. Use `Cascade` only for truly owned children (e.g. invoice line items) and justify it.
+- **Money as integers (cents)** — never Float/Decimal for currency (Decimal requires an ADR).
+- **Timestamps** `createdAt @default(now())` + `updatedAt @updatedAt`; lifecycle timestamps are explicit columns.
+- **Prisma enums mirror canonical sets exactly** (job status, invoice state, payment method, note type, role).
+- **Index** all FKs + common filters (job status, scheduledAt, agentId, customerId, invoice state, ping capturedAt).
+- **No hard deletes** of referenced entities — soft flags (`active`/`deletedAt`).
+- Multi-row/table writes use **transactions** (`prisma.$transaction`).
+
+**Guidance:** queries in `lib/<feature>` repositories returning typed results; keep field-agent row scoping in the query; seed script with representative data (owner, dispatcher, agents, sample jobs).
+
+**DoD:** explicit FKs + sensible `onDelete`; integer money; enums match canonical sets; key columns indexed; multi-row writes transactional; ships as a reviewed migration per policy.

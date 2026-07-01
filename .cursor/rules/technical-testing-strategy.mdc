@@ -1,0 +1,26 @@
+---
+description: Use when writing tests, setting up test tooling, or QA-ing a feature in SR-App (Vitest + Testing Library + Playwright).
+globs: **/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/e2e/**,**/tests/**
+alwaysApply: false
+---
+
+# Testing Strategy (SR-App)
+
+Detailed reference: `docs/steering/technical/testing-strategy.md`.
+
+**Tooling:** Vitest + Testing Library (unit/integration: actions, `lib` logic, components); Playwright
+(E2E for critical field + admin flows); test DB via disposable Postgres — never prod.
+
+**MUST be tested (non-negotiable):**
+- **Authorization** — each role's allow/deny; field-agent row scoping.
+- **Job state machine** — legal transitions succeed, **illegal rejected**, timestamps correct.
+- **Money math** — invoice totals, tax, partial payments → PAID derivation, reversals (integer/cents).
+- **Validation** — actions reject invalid input via Zod with field errors.
+- **Offline queue** — queued writes sync, re-validate server-side, surface conflicts/failures.
+- **Audit** — required events produce an audit record in the same transaction.
+
+**Lighter touch:** presentational components (smoke/render); dashboards (assert aggregates reconcile with seeded data, not layout).
+
+**Guidance:** co-locate unit tests; E2E under `e2e/`; test server actions directly for logic-heavy paths; deterministic seed fixtures; stub time.
+
+**DoD:** feature's authz, transitions, money math (if any), validation, and audit covered incl. negative cases; critical user flow has an E2E path.

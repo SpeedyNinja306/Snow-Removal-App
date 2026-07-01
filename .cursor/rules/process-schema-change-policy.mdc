@@ -1,0 +1,25 @@
+---
+description: Use when changing the database schema (adding/altering a model or column) or writing migrations in SR-App.
+globs: prisma/**,**/schema.prisma,**/migrations/**
+alwaysApply: false
+---
+
+# Schema Change Policy (SR-App)
+
+Detailed reference: `docs/steering/process/schema-change-policy.md`.
+
+**Classification**
+- **Additive (safe):** new nullable column, new table, new index, appended enum value → migrate normally (still reviewed).
+- **Breaking (guarded):** drop/rename column/table, change type, make NOT NULL, remove/reorder enum values, change relation/onDelete → **requires an ADR + expand→backfill→contract plan**.
+
+**Hard rules**
+- All changes ship as **committed Prisma migration files** — never `db push` on shared/prod, never hand-edit an applied migration.
+- **Breaking changes use expand-and-contract** (add new shape → backfill → switch → remove old later), not one destructive step on live data.
+- **Backfills are explicit + idempotent** (script/migration).
+- Adding an enum value affecting a state machine (job status, invoice state) **also updates the domain rule + transition rules in the same change**.
+- Money stays integer/cents (→Decimal is breaking + ADR).
+- Every schema change updates the **seed script** + affected Zod schemas/types.
+
+**Guidance:** descriptive migration names; NOT NULL in steps (nullable → backfill → set NOT NULL); verify on representative data first.
+
+**DoD:** change classified; reviewed migration (expand/backfill/contract if breaking); seed + schemas + affected domain rules updated; ADR if breaking.

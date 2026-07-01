@@ -1,0 +1,32 @@
+# Local development database for SR-App.
+# Production uses Neon serverless Postgres (see ADR-013); this compose file is
+# ONLY for local dev so the app has a working Postgres from line one.
+#
+#   docker compose up -d        # start Postgres in the background
+#   docker compose down         # stop (keeps data in the named volume)
+#   docker compose down -v      # stop AND delete data
+#
+# The default credentials below match the local DATABASE_URL in .env.example.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sr-app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sr_app
+      POSTGRES_PASSWORD: sr_app_dev_password
+      POSTGRES_DB: sr_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - sr_app_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sr_app -d sr_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sr_app_pgdata:
+    name: sr_app_pgdata

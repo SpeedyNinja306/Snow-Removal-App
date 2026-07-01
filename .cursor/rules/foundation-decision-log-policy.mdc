@@ -1,0 +1,26 @@
+---
+description: When and how to record decisions (ADRs) in docs/decision-log.md. Always applies.
+globs:
+alwaysApply: true
+---
+
+# Decision-Log Policy (SR-App)
+
+Detailed reference: `docs/steering/foundation/decision-log-policy.md`. All decisions live in
+`docs/decision-log.md` (append-only).
+
+**Add a decision-log entry whenever you:**
+- Change/interpret the locked stack or architecture principles.
+- Reverse or bend a non-goal.
+- Introduce a new dependency, external service, or data store.
+- Make a schema change beyond a pure additive column (see schema-change rule).
+- Choose between materially different approaches a future agent could reasonably reverse.
+- Resolve a spec/steering ambiguity by guessing.
+- Discover steering docs are wrong/incomplete (log it, then fix the doc).
+
+**Entry format (append-only; never edit past entries — supersede instead):**
+`ADR-<NNN>` with Date, Status (proposed|accepted|superseded-by), Context, Decision, Alternatives, Consequences.
+
+**Rules:** reference the ADR id in the implementing change; mark superseded entries, don't delete.
+If you can't decide safely (needs owner input), record it as `proposed` and flag it in your summary
+rather than guessing silently.

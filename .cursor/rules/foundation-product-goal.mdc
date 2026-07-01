@@ -1,0 +1,28 @@
+---
+description: Foundational product goal for SR-App (snowmobile field service). Always applies.
+globs:
+alwaysApply: true
+---
+
+# Product Goal (SR-App)
+
+Detailed reference: `docs/steering/foundation/product-goal.md`.
+
+**Intent.** SR-App runs the daily operations of a snowmobile field service company from one
+internal tool. North star: **a field agent can go from "assigned a job" to "job done + invoice +
+payment recorded" on a phone, in the field, tolerant of bad signal**, while dispatch watches it happen.
+
+**Users (exactly three):** `FIELD_AGENT` (mobile technician), `DISPATCH` (admin/back-office),
+`OWNER` (admin + oversight + user management).
+
+**Hard rules**
+- Every feature must serve at least one of the three users; state which one and which workflow it advances.
+- **Field speed wins** over admin richness when they conflict on the mobile surface.
+- The **Job** is the operational system of record; everything hangs off jobs.
+- Truthfulness over impressiveness — never present a capability that isn't really delivered.
+
+**Failure modes:** admin richness that slows the field surface; features with no clear user among
+the three; drifting toward a generic CRM.
+
+**Escalation:** if a feature doesn't clearly serve one of the three users or conflicts with the
+north star, stop and log a decision (`docs/decision-log.md`).

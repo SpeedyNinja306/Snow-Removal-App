@@ -1,0 +1,23 @@
+---
+description: Use when recording payments against invoices or modeling the payment schema in SR-App (record only, no card processing).
+globs: **/payments/**,**/lib/payments/**
+alwaysApply: false
+---
+
+# Payments (SR-App)
+
+Detailed reference: `docs/steering/domain/payments.md`. We RECORD money received; we do NOT process
+cards (ADR-006).
+
+**Hard rules**
+- A **Payment** records: invoice, amount (integer cents), method `CASH|CHECK|CARD_EXTERNAL|E_TRANSFER|OTHER`, `receivedAt`, optional reference, recording user.
+- **Not a processor:** `CARD_EXTERNAL` = card run elsewhere; store only the fact + reference. **No PAN/CVV/card data ever.**
+- Payments attach only to **FINAL/PAID** invoices — never a DRAFT.
+- **Partial payments allowed.** Invoice becomes `PAID` when sum of non-voided payments ≥ grand total. Track `amountPaid`/`balanceDue` (derived server-side).
+- **Overpayment = warn-and-allow (ADR-014):** record full amount, flag overpaid delta; no refund/credit-balance workflow in MVP. **Overpayment is explicitly audited** (`payment.overpayment_recorded`; metadata includes overpaid delta — see `domain-audit-logging`).
+- Payments are **append-only**; fix a mistake with a **reversing (negative/void) payment**, never edit/delete. All records + reversals audited.
+- Field agents record payments for **their own** jobs' invoices; admin/owner for any.
+
+**Guidance:** one server function derives `amountPaid`/`balanceDue`/`PAID`, reused by UI + status; recompute PAID transactionally on add/reverse; cents everywhere, format at edge.
+
+**DoD:** payments recorded (method/amount/reference) only against final invoices; partials sum to derive PAID; reversals additive + audited; no card data; role scoping enforced.

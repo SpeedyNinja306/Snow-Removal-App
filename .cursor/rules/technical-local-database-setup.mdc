@@ -1,0 +1,25 @@
+---
+description: Use when setting up or running the local Postgres database, migrations, or seed data for SR-App development.
+globs: docker-compose.yml,prisma/seed.*
+alwaysApply: false
+---
+
+# Local Database Setup (SR-App)
+
+Detailed reference: `docs/steering/technical/local-database-setup.md`. Local dev uses **docker
+Postgres**; production uses **Neon** (ADR-013). Do NOT commit a real `.env`.
+
+**First-time setup**
+1. `cp .env.example .env.local` (or `.env`) and fill secrets (`AUTH_SECRET`, `SEED_OWNER_*`, provider keys). The local `DATABASE_URL`/`DIRECT_URL` defaults already match docker-compose.
+2. `docker compose up -d` — start Postgres (port 5432, named volume `sr_app_pgdata`).
+3. `npx prisma migrate dev` — apply migrations (uses `DIRECT_URL`).
+4. `npx prisma db seed` — seed first OWNER (from `SEED_OWNER_*`) + representative data.
+5. `npm run dev` — start the app.
+
+**Common commands:** `docker compose down` (stop, keep data) · `docker compose down -v` (wipe data) ·
+`npx prisma studio` (inspect) · `npx prisma migrate reset` (drop + re-migrate + reseed, local only).
+
+**Rules**
+- Never `prisma db push` against shared/prod — migrations only (see schema-change rule).
+- Local defaults are dev-only credentials; production secrets live in the deploy platform.
+- Keep the seed script **idempotent** (no-op if data exists) so re-runs are safe.

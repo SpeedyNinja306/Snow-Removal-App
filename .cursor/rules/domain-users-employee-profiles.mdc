@@ -1,0 +1,22 @@
+---
+description: Use when managing employees/users, editing profiles, or activating/deactivating users in SR-App.
+globs: **/users/**,**/employees/**,**/profile/**
+alwaysApply: false
+---
+
+# Users & Employee Profiles (SR-App)
+
+Detailed reference: `docs/steering/domain/users-employee-profiles.md`. Thin, not an HR system.
+
+**Hard rules**
+- A **User** has: name, email (unique login identity), role, active flag, timestamps, optional phone.
+  Field agents may have a default **Truck**.
+- **No hard deletes** — deactivate (`active=false`); historical jobs/invoices/time/audit keep referencing the user.
+- Only `OWNER` creates users, changes roles, or activates/deactivates.
+- Deactivated users can't log in and are excluded from assignment pickers, but remain on historical records.
+- Role/active-state changes are **audited**.
+
+**Guidance:** MVP profile fields = contact + role + default truck. No pay/HR/PII fields without an ADR.
+Assignment pickers query `active=true` field agents only.
+
+**DoD:** owners can create/deactivate/edit users + change roles; deactivation preserves history + blocks login; changes audited.

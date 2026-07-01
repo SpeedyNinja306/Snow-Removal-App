@@ -1,0 +1,21 @@
+---
+description: Use when building customers or service locations (addresses + geocoding) in SR-App.
+globs: **/customers/**,**/locations/**,**/service-locations/**
+alwaysApply: false
+---
+
+# Customers & Service Locations (SR-App)
+
+Detailed reference: `docs/steering/domain/customers-service-locations.md`.
+
+**Hard rules**
+- **Customer**: name (person/business), primary contact (phone/email), optional billing notes, active flag, timestamps.
+- **Service Location**: belongs to exactly one Customer; structured address, optional access notes, **persisted lat/lng**.
+- A **Job references both a Customer and a Service Location**, and the location must belong to that customer — enforce server-side.
+- **No hard deletes** if referenced — deactivate.
+- **Geocode once at save time via MapTiler server-side, persist lat/lng** (ADR-009). Never geocode per map render. On failure, save address + `geocoded=false`, allow manual coords.
+- Editing a customer/location does NOT rewrite historical invoice snapshots (invoices snapshot billing info).
+
+**Guidance:** store lat/lng as numeric columns + raw address; job location picker filtered to the selected customer's locations.
+
+**DoD:** customers + locations CRUD/deactivate; locations carry persisted coords; job creation enforces customer↔location integrity; referenced records not hard-deletable.

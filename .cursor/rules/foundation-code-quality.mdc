@@ -1,0 +1,25 @@
+---
+description: Baseline code quality, typing, and comment discipline for SR-App. Always applies.
+globs:
+alwaysApply: true
+---
+
+# Code Quality (SR-App)
+
+Detailed reference: `docs/steering/foundation/code-quality.md`.
+
+**Hard rules**
+- **TypeScript strict**; no `any` without a justifying comment; no `@ts-ignore` without a reason.
+- No unused exports, dead code, or commented-out blocks left behind.
+- **Validate all external input with Zod** before use.
+- **No secrets in code** (see env-secrets rule).
+- Errors are handled, not swallowed (no empty `catch`); surface actionable messages.
+- **Comments explain WHY, not what** — no obvious narration, no change-explaining comments.
+- Naming: `PascalCase` components/types, `camelCase` vars/functions, `SCREAMING_SNAKE` enum values,
+  kebab-case non-component file names.
+
+**Guidance:** pure, testable functions in `lib/`; thin components; small single-responsibility
+modules; reuse shared Zod schemas/types (don't redefine the same shape twice).
+
+**Definition of done:** passes typecheck + lint, no dead code, inputs validated, errors handled,
+naming followed.

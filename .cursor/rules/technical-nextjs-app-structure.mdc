@@ -1,0 +1,21 @@
+---
+description: Use when scaffolding routes/segments or organizing feature folders in the SR-App Next.js App Router project.
+globs: app/**,src/app/**,next.config.*
+alwaysApply: false
+---
+
+# Next.js App Structure (SR-App)
+
+Detailed reference: `docs/steering/technical/nextjs-app-structure.md`.
+
+**Hard rules**
+- **App Router only.** Route groups by surface: `app/(field)/**` (field agent), `app/(admin)/**`
+  (dispatch/admin), `app/(owner)/**` (owner oversight; may nest in admin), `app/(auth)/**` (login).
+- **Feature colocation:** a route segment holds its `page.tsx` + local components; shared logic imported from `lib/<feature>`.
+- **Shared non-route code in `lib/`** (domain logic, zod schemas, authz, audit, invoicing, time, geo); UI primitives in `components/ui` (shadcn), shared in `components/`.
+- **Route Handlers** (`app/api/**/route.ts`) only for uploads/webhooks/integrations — not ordinary form mutations (use Server Actions).
+- Each surface's `layout.tsx` enforces the required role server-side before render.
+
+**Guidance:** thin server-component pages; segments named by domain noun (jobs, invoices, customers, trucks, dispatch); Prisma behind `lib/db` + repositories, never inline in components.
+
+**DoD:** features slot into the correct route group, keep logic in `lib/`, gate the surface by role in the layout, follow naming.

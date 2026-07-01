@@ -1,0 +1,24 @@
+---
+description: Use when you need the canonical name or definition of an SR-App domain term or entity (Job, Customer, Invoice, Ping, etc.).
+globs:
+alwaysApply: false
+---
+
+# Glossary (SR-App)
+
+Detailed reference: `docs/steering/foundation/glossary.md`. Use these exact entity names in schema,
+types, and UI copy — do not invent synonyms (no "ticket" for Job, "client" for Customer, "worker"
+for Field Agent).
+
+- **User / Role** — authenticated person; role is `OWNER` | `DISPATCH` | `FIELD_AGENT`.
+- **Field Agent** — technician on the mobile PWA. **Dispatch/Admin** — schedules/assigns/oversees. **Owner** — full access + reporting.
+- **Customer** — payer/contact; has one+ **Service Locations** (physical site: address + lat/lng).
+- **Job** — the unit of work and system of record; has status lifecycle, assigned agent, optional truck, time, notes, photos, invoice.
+- **Job Status** — canonical lifecycle state (see jobs-lifecycle rule). **Assignment** — Job↔agent (+optional truck).
+- **Truck** — company vehicle assignable to agent/job (assignment only, no telematics).
+- **Invoice** — billing doc for a Job: `DRAFT → FINAL → PAID` (+`VOID`). **Line Item** — labor/parts/fee/discount.
+- **Payment** — recorded receipt against an invoice. **Time Entry** — labor time on a job.
+- **Note** — text log on a job. **Photo/Media** — image attached to a job.
+- **Location Ping** — coarse, timestamped position sample while a job is active (NOT continuous tracking).
+- **Audit Event** — immutable record of a significant action. **Freshness/Stale** — how recent a ping is.
+- **Dispatch Board** — admin view of jobs + assignments + coarse locations.

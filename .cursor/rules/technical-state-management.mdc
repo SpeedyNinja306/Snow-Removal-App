@@ -1,0 +1,20 @@
+---
+description: Use when managing non-trivial client state or building forms in SR-App (server-first, minimal client state).
+globs:
+alwaysApply: false
+---
+
+# State Management (SR-App)
+
+Detailed reference: `docs/steering/technical/state-management.md`.
+
+**Hard rules**
+- **Server is source of truth.** Prefer server components + server actions + `revalidate` over client caches; don't mirror server data into a global client store.
+- **URL/search params** hold shareable view state (filters, tabs, selected date) on admin surfaces.
+- **Local component state** for transient UI; **forms** use server actions (`useFormState`/`useFormStatus`) + the shared Zod schema for hints — server stays authoritative.
+- **No global client store by default.** If genuinely needed (offline queue status, active timer), a small scoped store (e.g. Zustand) is OK — log a decision, scope it to that concern, not app-wide server data.
+- The **offline queue** (`lib/offline`, IndexedDB) is the one sanctioned persistent client store.
+
+**Guidance:** derive, don't duplicate; keep forms minimally controlled, lean on native form + action results.
+
+**DoD:** client state limited to ephemeral UI + offline queue; shareable view state in the URL; forms use server actions + shared schemas; no global store shadows server data.

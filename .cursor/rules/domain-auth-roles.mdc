@@ -1,0 +1,31 @@
+---
+description: Use when implementing login/session, permissions, or gating any route/action by role in SR-App.
+globs: **/auth/**,**/middleware.ts,**/lib/auth/**,**/lib/authz/**
+alwaysApply: false
+---
+
+# Auth & Roles (SR-App)
+
+Detailed reference: `docs/steering/domain/auth-roles.md`. Auth mechanism = Auth.js v5 Credentials +
+argon2id, seeded first OWNER (ADR-010).
+
+**Three roles (exactly):**
+- `FIELD_AGENT` — sees/works ONLY jobs assigned to them (+those jobs' customers/locations). Can advance
+  status, log time, add notes/photos, build/finalize invoice + record payment for **their** jobs. Cannot
+  manage users, reassign, or view others' jobs/finances.
+- `DISPATCH` — full CRUD on customers, locations, jobs, assignments, trucks, invoices, payments; sees all + board + coarse locations.
+- `OWNER` — DISPATCH superset + reporting/oversight + user management. (OWNER ⊇ DISPATCH; FIELD_AGENT is a distinct narrower surface.)
+
+**Hard rules**
+- Every Server Action / protected Route Handler: resolve session → authorize (role + resource ownership) BEFORE work.
+- **Never trust client-sent identity/role** — derive from server session only.
+- Field agents are **row-scoped to their own jobs at the query level**, not just hidden in UI.
+- **Deny by default.** Authz failures return 403-style, are audited (auth events), never silently ignored.
+- Passwords argon2id; sessions secure httpOnly cookies.
+- **Session max age (ADR-015):** JWT/session cookies expire after **12 hours** (`AUTH_SESSION_MAX_AGE_SECONDS=43200`). Must not be long-lived (approved window: 8–24h).
+- **Immediate session invalidation on role change/deactivation is NOT in MVP** — required **fast-follow** (ADR-015). Until it ships: **re-fetch `active` + role from DB on every sensitive mutation** and deny if deactivated or role insufficient.
+
+**Guidance:** centralize in `lib/authz` (`requireRole`, `requireOwnerOfJob`, `can`). UI hiding ≠ enforcement.
+
+**DoD:** session required, role/ownership checked server-side, field-agent row scoping in queries, denials audited, unauthorized-access test exists.
+Adding a 4th role or changing hierarchy REQUIRES a decision-log entry.

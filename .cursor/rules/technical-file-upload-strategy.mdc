@@ -1,0 +1,23 @@
+---
+description: Use when implementing photo/file uploads or minting presigned URLs in SR-App (direct-to-R2, no binaries through the server).
+globs: **/upload/**,**/lib/storage/**,app/api/upload/**
+alwaysApply: false
+---
+
+# File Upload Strategy (SR-App)
+
+Detailed reference: `docs/steering/technical/file-upload-strategy.md`. Storage = Cloudflare R2,
+S3-compatible, private buckets (ADR-008).
+
+**Hard rules**
+- **Direct-to-storage via presigned URLs.** Client requests a presigned upload URL from a server action/handler (which authorizes + validates intended type/size), uploads directly to R2, then confirms; server stores only **metadata** (key, type, size, thumbnail ref, author, jobId).
+- **Server-side validation when minting:** allowed content types (images for MVP), max size, and a **server-generated object key** namespaced by job (`jobs/<jobId>/<uuid>`). Never accept a client-chosen path.
+- **Private buckets.** Reads via short-lived presigned GET URLs (or an authorized proxy) — no public listing/permanent public URLs.
+- **No storage credentials client-side** — server-only env vars.
+- Generate a **thumbnail/downscaled variant** for lists.
+- Enforce the same **authorization** as the underlying job (field agents: own jobs only).
+- Handle orphans: no confirm → no metadata record (or mark pending + sweep).
+
+**Guidance:** `lib/storage` wraps the S3 client + URL signing; size/type limits in one config reused by mint + confirm; offline capture queues the blob and uploads on reconnect.
+
+**DoD:** uploads direct-to-private-R2 via server-minted presigned URLs w/ server-side type/size validation + job-scoped keys; only metadata + thumbnails stored; reads access-controlled; authz matches the job.

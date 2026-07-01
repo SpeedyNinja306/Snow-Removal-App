@@ -1,0 +1,27 @@
+---
+description: Use when building invoice schema/states, creating/editing/finalizing invoices, or printable invoice output in SR-App.
+globs: **/invoices/**,**/billing/**,**/lib/invoicing/**
+alwaysApply: false
+---
+
+# Invoices & Billing (SR-App)
+
+Detailed reference: `docs/steering/domain/invoices-billing.md`. Billing, not accounting. Payments are
+a separate concern (see payments rule).
+
+**States (exact):** `DRAFT` (editable) → `FINAL` (locked) → `PAID` (derived from payments); `VOID` (terminal).
+Legal: DRAFT→FINAL, FINAL→PAID, FINAL→VOID, PAID→VOID (rare, audited, reason). No FINAL→DRAFT (use void+reissue).
+
+**Hard rules**
+- An invoice belongs to exactly one Job (→ one Customer/Location).
+- **Line items:** description, quantity, unit price, line total, category `LABOR|PARTS|FEE|DISCOUNT`. **Totals computed server-side** (never trust client totals).
+- **Money in integer cents** — never floats.
+- **Edit controls:** DRAFT fully editable by the job's agent/admin; FINAL/PAID have **immutable line items** — correct via VOID+reissue or an admin-only audited adjustment flow.
+- **Snapshot** customer/location billing info + invoice number at DRAFT→FINAL so later edits don't rewrite history.
+- **Tax (ADR-011):** single configurable flat rate (bps, integer) on taxable subtotal (LABOR/PARTS/FEE; DISCOUNT reduces base); rate snapshotted at finalize; default may be 0; math server-side in `lib/invoicing`.
+- `COMPLETED → CLOSED` on the job requires a FINAL/PAID invoice. `PAID` is driven by payment totals ≥ grand total.
+- Finalize/void/correction are **audited**.
+
+**Printable/shareable (MVP):** FINAL/PAID renders a clean printable view (company/customer/job/line items/totals/number/date/status). "Share" = printable/PDF handoff, NOT a customer portal.
+
+**DoD:** invoices attach to a job; typed line items with server-computed integer totals; state machine + edit locks enforced; billing info + number snapshotted at finalize; printable view; finalize/void/correction audited; PAID driven by payments.

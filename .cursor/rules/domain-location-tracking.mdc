@@ -1,0 +1,26 @@
+---
+description: Use when implementing agent location pings, showing agent location, or defining freshness/stale thresholds in SR-App.
+globs: **/location/**,**/tracking/**,**/lib/geo/**
+alwaysApply: false
+---
+
+# Location Tracking (SR-App)
+
+Detailed reference: `docs/steering/domain/location-tracking.md`. Coarse, consent-based, foreground
+awareness — NOT continuous fleet tracking (ADR-004).
+
+**Reality constraints (respect + communicate):** browser Geolocation API, requires permission; **no
+reliable background tracking** (stops when app backgrounded/locked/closed); accuracy varies.
+
+**Hard rules**
+- **Capture only while relevant:** ping while a field agent has a job in `EN_ROUTE`/`IN_PROGRESS` AND the app is foregrounded. Not otherwise.
+- **Location Ping** stores agent, job (nullable), lat, lng, accuracy, `capturedAt` (append-only samples).
+- **Freshness is first-class:** Fresh ≤2 min; Aging 2–10 min; **Stale >10 min (must be marked "stale")**; No data = "location unavailable".
+- **Consent required**; if denied, degrade gracefully — the app fully works without location (denial is not a blocking error).
+- **Least-privilege visibility:** only DISPATCH/OWNER see agent locations; a field agent sees only their own; never exposed to customers.
+- **Retention:** purge pings older than 30 days (MVP default). Purge runs via **Vercel Cron** daily — see `technical-scheduled-jobs` rule (ADR-016).
+- Tracking on/off + permission grant/deny are audited (coarse); individual pings are NOT audit events.
+
+**NEVER claim/imply:** 24/7 or background/closed-app tracking; real-time/continuous location; that a stale ping is current.
+
+**DoD:** pings captured only during active foregrounded jobs w/ consent; stored with accuracy+timestamp; displayed with correct fresh/aging/stale/no-data labels; admin/owner(+self) only; retention respected; copy never overclaims.

@@ -1,0 +1,22 @@
+---
+description: Use when building or reviewing UI for accessibility and real-world field usability (gloves/cold/glare/one-handed) in SR-App.
+globs:
+alwaysApply: false
+---
+
+# Accessibility & Field Usability (SR-App)
+
+Detailed reference: `docs/steering/technical/accessibility.md`.
+
+**Hard rules**
+- **Semantic HTML + ARIA** where needed; labeled forms; real buttons/links for interactive elements.
+- **Large touch targets** (min ~44px) for primary field actions; generous spacing to avoid mis-taps.
+- **Keyboard operable** + focus-visible on admin surfaces.
+- **WCAG AA contrast**; **never rely on color alone** (job status + text label; location freshness + text).
+- **Readable outdoors** — high-contrast defaults; avoid low-contrast gray-on-white for critical info.
+- Respect `prefers-reduced-motion`; don't gate critical actions behind hover.
+- Error/validation messages are text, associated with fields (not color-only).
+
+**Guidance:** lean on shadcn/ui accessible primitives; test the field flow on a real small viewport; verify one-handed reach of the action bar.
+
+**DoD:** semantic/labeled controls; AA contrast; field-sized touch targets; state conveyed with text not just color; field action bar reachable one-handed.

@@ -1,0 +1,22 @@
+---
+description: Use when implementing job labor time tracking (timers/entries) or the time entry schema in SR-App.
+globs: **/time/**,**/lib/time/**
+alwaysApply: false
+---
+
+# Time Tracking (SR-App)
+
+Detailed reference: `docs/steering/domain/time-tracking.md`. Job labor time, not payroll.
+
+**Hard rules**
+- A **Time Entry** belongs to a Job + agent: `startedAt`, `endedAt` (nullable while running), derived `durationMinutes`, optional note.
+- **One active timer per agent.** Starting a new timer **auto-stops the previous** (sets its `endedAt=now`) in one transaction, audited (ADR-012).
+- Support **start/stop timer** (one tap) AND manual entry/correction of start/end.
+- **Duration computed server-side** from timestamps — never trust client-sent duration.
+- Time entries editable/correctable while the job isn't `CLOSED`; edits audited.
+- Time may **seed a suggested `LABOR` invoice line but does NOT auto-bill** — a human decides charges.
+- Field agents manage time only on **their own** jobs.
+
+**Guidance:** UTC timestamps, compute duration on read/close; start/stop is a prominent field action; offline start/stop queues with real timestamps and applies the same auto-stop rule on sync.
+
+**DoD:** start/stop + manual entry/correction on own jobs; one timer per agent (auto-stop); durations server-computed; edits audited; time can seed (not force) a labor line.

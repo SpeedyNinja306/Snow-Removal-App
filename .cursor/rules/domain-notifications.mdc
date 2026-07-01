@@ -1,0 +1,22 @@
+---
+description: Use when adding in-app notifications for job assignment, status change, or payment events in SR-App (in-app only, no email/SMS/push).
+globs:
+alwaysApply: false
+---
+
+# Notifications (SR-App)
+
+Detailed reference: `docs/steering/domain/notifications.md`. Thin MVP concern.
+
+**MVP scope:** in-app notifications only for: job assigned to an agent; job status changed to a state
+the viewer cares about (dispatch sees COMPLETED/ON_HOLD/CANCELED); payment recorded. Simple list/badge + mark-as-read.
+
+**Hard rules**
+- Notifications are **derived from real events** (transitions, assignments, payments) — no fake/marketing notifications.
+- Respect role scoping (agent = their jobs; dispatch/owner = fleet).
+- **No email/SMS/push in MVP** without an ADR (cost/deliverability/consent).
+- Not a source of truth — they point back to the job/invoice record.
+
+**Guidance:** emit from the same server transaction as the event; `Notification` record = recipient, type, subject ref (jobId/invoiceId), createdAt, readAt.
+
+**DoD:** key events create in-app, role-scoped notifications tied to the real event, with read/unread list, and no external channels beyond what an ADR authorizes.

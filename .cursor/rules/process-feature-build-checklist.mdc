@@ -1,0 +1,23 @@
+---
+description: Use when building a full vertical feature slice in SR-App to follow the correct end-to-end order.
+globs:
+alwaysApply: false
+---
+
+# Feature Build Checklist (SR-App)
+
+Detailed reference: `docs/steering/process/feature-build-checklist.md`.
+
+**Order (do not skip):**
+1. **Intake** — classify + load routed rules (task-intake).
+2. **Model** — schema via schema-change-policy + database rule (enums match canonical sets; FKs/indexes; migration).
+3. **Contracts** — shared Zod schemas + typed action result shapes (api-actions-validation).
+4. **Server logic** — `lib/<feature>` (pure, testable) + actions following auth→authz→validate→execute→audit→revalidate.
+5. **Authorization** — role + row scoping server-side (auth-roles); audit where required.
+6. **UI** — correct route group (nextjs-app-structure), server-first w/ small client islands; mobile-first for field.
+7. **Offline** (if field write) — extend the supported queue set only if authorized (pwa-offline).
+8. **Tests** — authz, state, money, validation, audit, negative cases.
+9. **Docs/decisions** — update `.env.example`, add ADRs, update rules if reality changed.
+10. **Self-review** — run definition-of-done; report honestly what works vs stubbed.
+
+**Rules:** don't build UI before the server contract exists; don't mark stubbed work done.

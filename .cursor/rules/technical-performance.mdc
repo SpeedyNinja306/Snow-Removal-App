@@ -1,0 +1,22 @@
+---
+description: Use when optimizing a slow page/query or reducing client bundle size in SR-App, especially the field mobile surface.
+globs:
+alwaysApply: false
+---
+
+# Performance (SR-App)
+
+Detailed reference: `docs/steering/technical/performance.md`. Fast where it matters: the field surface
+on a mid-range phone over poor cellular, and the dispatch board over realistic data.
+
+**Hard rules / targets**
+- **Field surface: minimal client JS** — only interactive islands are client components; job list/detail render server-side; fast usable first load on 3G-class connections.
+- **No N+1 queries** — deliberate Prisma `include`/`select`; index common filters.
+- **Paginate/limit** all list queries (jobs, invoices, audit, pings) — never unbounded.
+- **Images downscaled** (thumbnails for lists; lazy-load full).
+- **Cache/`revalidate` deliberately**; avoid over-fetching per navigation.
+- Maps/charts load only where needed (code-split).
+
+**Guidance:** measure before optimizing; server-side aggregation for dashboards; select only needed columns.
+
+**DoD:** targeted page/query has a measured improvement; lists paginated + indexed; field surface stays light; no correctness rule traded away.

@@ -1,0 +1,22 @@
+---
+description: Use when reporting blockers, assumptions, stubs, or missing/wrong steering for an SR-App task (honesty over fake completion).
+globs:
+alwaysApply: false
+---
+
+# Gap Reporting (SR-App)
+
+Detailed reference: `docs/steering/process/gap-reporting.md`.
+
+**Report a gap when you:**
+- Had to **guess** an ambiguous requirement (also log an ADR if architectural).
+- **Stubbed/mocked/deferred** anything (name exactly what is not real).
+- Found a **rule missing, wrong, or conflicting** for your task.
+- Hit a **blocker** needing owner input (record as `proposed` ADR).
+- A task implies a **non-goal** — flag it instead of quietly building it.
+
+**How:** include a **"Gaps & Assumptions"** section in the task summary listing incomplete work,
+assumptions, decisions needed, and ADRs raised. For a missing/wrong rule, propose the fix (or add it).
+**Never present incomplete work as finished.**
+
+**DoD:** every assumption, stub, blocker, and steering gap explicitly listed in the summary, with ADRs raised where required.

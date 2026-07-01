@@ -1,0 +1,24 @@
+---
+description: Use when managing trucks or assigning a truck to an agent/job in SR-App (assignment only, no telematics).
+globs: **/trucks/**,**/fleet/**
+alwaysApply: false
+---
+
+# Trucks & Fleet (SR-App)
+
+Detailed reference: `docs/steering/domain/trucks-fleet.md`. Lightweight assignment only (ADR-005).
+
+**MVP scope (all that's in):**
+- **Truck**: label/name, identifier (plate/unit #), optional make/model/year, active flag, timestamps.
+- **Assignment**: truck optionally assigned to a field agent (default vehicle) and/or a job — jobs/agents work without a truck.
+- Inactive/out-of-service trucks excluded from assignment pickers.
+
+**Explicitly REJECTED (do NOT build):**
+- No telematics (engine/OBD/fuel/odometer/live vehicle GPS/maintenance automation).
+- No live truck location (trucks aren't tracked; only agents emit coarse pings).
+- No fake gauges/mileage/diagnostics.
+- No hard deletes of referenced trucks — deactivate. Assignment is admin-gated + audited.
+
+**Guidance:** nullable `truckId` FK on Job + optional default `truckId` on field-agent user; simple list + create/edit/deactivate.
+
+**DoD:** trucks CRUD/deactivate; optionally assigned to agents+jobs via audited admin actions; inactive excluded; no telematics/fake-metric surface.

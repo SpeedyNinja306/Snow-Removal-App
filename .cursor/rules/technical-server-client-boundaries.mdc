@@ -1,0 +1,21 @@
+---
+description: Use when deciding server vs client components or fetching/mutating data in SR-App (server-first, trust boundary = server).
+globs: app/**,src/app/**,components/**,lib/**
+alwaysApply: false
+---
+
+# Server / Client Boundaries (SR-App)
+
+Detailed reference: `docs/steering/technical/server-client-boundaries.md`.
+
+**Hard rules**
+- **Default to Server Components.** Add `"use client"` only for real interactivity (forms w/ local state, maps, camera/upload, timers, offline queue, charts).
+- **Data fetching on the server** (RSC or server actions); client components get data via props/actions — no direct DB access, no secrets client-side.
+- **Trust boundary = server:** every action/handler re-validates input (Zod) + re-checks authorization regardless of the client.
+- **No secrets/tokens/keys in client bundles** — only `NEXT_PUBLIC_*` may reach the client.
+- Client components stay **leaf-level and small**; push data/logic to the server.
+- Presigned upload URLs are minted server-side; the client uses but can't mint them.
+
+**Guidance:** pattern = server page → fetch + authorize → minimal props → small client island. Co-locate feature server actions in `lib/<feature>/actions.ts` (`"use server"`).
+
+**DoD:** interactivity isolated to small client islands; data/authz server-side; no secrets on client; mutations re-validate + re-authorize on the server.
