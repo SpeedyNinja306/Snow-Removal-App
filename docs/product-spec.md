@@ -1,6 +1,6 @@
 # SR-App — Product Spec (MVP)
 
-Internal field service management app for a **snowmobile service company**. This spec is concrete
+Internal field service management app for a **snow removal (plowing) company**. This spec is concrete
 but scoped to the MVP. It is the product source of truth referenced by the steering docs; feature
 rules live in `docs/steering/domain/*`.
 

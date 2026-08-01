@@ -22,7 +22,7 @@ nonGoverns:
 # Product Goal
 
 ## 1. Intent
-SR-App exists to run the daily operations of a **snowmobile field service company** from
+SR-App exists to run the daily operations of a **snow removal (plowing) field service company** from
 one internal tool. It must make **field agents fast on a phone**, give **dispatch/admin real
 operational visibility**, and give the **owner** financial and operational oversight — without
 enterprise bloat.

@@ -1,6 +1,6 @@
 # AGENTS.md — Master Agent Guidance (SR-App)
 
-> **SR-App** is an internal **field service management app for a snowmobile service company**.
+> **SR-App** is an internal **field service management app for a snow removal (plowing) company**.
 > Users: **field agents**, **dispatch/admin**, and the **owner**.
 > This file is the single entry point for any AI agent working in this repository.
 
@@ -8,7 +8,7 @@
 
 ## 1. What this project is (read this first, once)
 
-A mobile-first, role-based operations app that runs a snowmobile service business end to end:
+A mobile-first, role-based operations app that runs a snow removal (plowing) business end to end:
 
 - **Field agents** work jobs from a phone in the field (often bad signal): see job details,
   update job status, log time, add notes/photos, and produce/hand off an invoice.
