@@ -4,7 +4,13 @@ import { SessionProof } from "@/components/session-proof";
 import { requireRoles } from "@/lib/authz";
 import { ADMIN_ROLES, OWNER_HOME } from "@/lib/authz/routes";
 import { Role } from "@/lib/generated/prisma/enums";
-import { listJobsForDispatchBoard } from "@/lib/jobs/queries";
+import {
+  listActiveFieldAgents,
+  listJobsForDispatchBoard,
+} from "@/lib/jobs/queries";
+import { isAssignmentBlocked } from "@/lib/jobs/status";
+
+import { AssignAgentSelect } from "./assign-agent-select";
 
 export const metadata = {
   title: "Dispatch · SR-App",
@@ -12,16 +18,18 @@ export const metadata = {
 
 export default async function DispatchHomePage() {
   const user = await requireRoles(ADMIN_ROLES);
-  const jobs = await listJobsForDispatchBoard();
+  const [jobs, agents] = await Promise.all([
+    listJobsForDispatchBoard(),
+    listActiveFieldAgents(),
+  ]);
 
   return (
     <section>
       <h1 className="text-xl font-semibold">Dispatch</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Placeholder surface. Truck assignment, invoices and payments arrive
-        with their own feature tickets. The table below is an unstyled proof
-        that Job/ServiceLocation/Customer read through Prisma — it is not the
-        real dispatch board (no filters, agent assignment, or freshness yet).
+        Field-agent assignment is live below. Truck assignment, filters, and
+        coarse location freshness arrive with their own feature tickets — this
+        is not yet the full dispatch board.
       </p>
       <SessionProof user={user} allowedRoles={ADMIN_ROLES} />
 
@@ -32,13 +40,14 @@ export default async function DispatchHomePage() {
             <th className="border border-slate-700 px-2 py-1 text-left">Customer</th>
             <th className="border border-slate-700 px-2 py-1 text-left">Location</th>
             <th className="border border-slate-700 px-2 py-1 text-left">Status</th>
+            <th className="border border-slate-700 px-2 py-1 text-left">Assigned agent</th>
             <th className="border border-slate-700 px-2 py-1 text-left">Created</th>
           </tr>
         </thead>
         <tbody>
           {jobs.length === 0 ? (
             <tr>
-              <td className="border border-slate-700 px-2 py-1" colSpan={5}>
+              <td className="border border-slate-700 px-2 py-1" colSpan={6}>
                 No jobs yet.
               </td>
             </tr>
@@ -54,6 +63,15 @@ export default async function DispatchHomePage() {
                   {job.serviceLocation.state}
                 </td>
                 <td className="border border-slate-700 px-2 py-1">{job.status}</td>
+                <td className="border border-slate-700 px-2 py-1 align-top">
+                  <AssignAgentSelect
+                    jobId={job.id}
+                    agents={agents}
+                    assignedUserId={job.assignedUser?.id ?? null}
+                    disabled={isAssignmentBlocked(job.status)}
+                    disabledLabel={`${job.status} — not assignable`}
+                  />
+                </td>
                 <td className="border border-slate-700 px-2 py-1">
                   {job.createdAt.toISOString()}
                 </td>

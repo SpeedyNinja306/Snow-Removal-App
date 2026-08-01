@@ -321,6 +321,53 @@ ambiguity by guessing.
   schema change. `INVOICED` no longer exists as a job state — invoice-driven completion is
   represented by `COMPLETED → CLOSED` per the canonical lifecycle once invoicing exists.
 
+### ADR-023: Job agent assignment — nullable FK, state machine, and assignment semantics
+- Date: 2026-07-31
+- Status: accepted
+- Context: The assignment ticket needed a place to record the current field-agent
+  assignment on a `Job`, the server-side transition allow-list that
+  `domain/jobs-lifecycle.md` §3–4 requires, and a decision on the assignment
+  rules the ticket left partially specified.
+- Decision:
+  - **Schema (additive, `process/schema-change-policy.md`):** add a nullable
+    `Job.assignedUserId` FK → `User.id` (`onDelete: Restrict`, indexed) with a
+    `User.assignedJobs` back-relation. `Restrict` mirrors the
+    deactivate-over-delete rule — an assigned agent is soft-deactivated, never
+    hard-deleted — so the FK never blocks in practice.
+  - **State machine:** `lib/jobs/status.ts` is the single authority for the
+    canonical allow-list from `jobs-lifecycle.md` §3. `assertTransition` rejects
+    illegal transitions server-side; UI never re-encodes legality.
+  - **`assignJob(jobId, userId)` semantics:** OWNER/DISPATCH only (re-checked
+    against the DB session, ADR-015); the target must be an **active
+    `FIELD_AGENT`**; a `DRAFT`/`SCHEDULED` job transitions to `ASSIGNED`
+    **through the state machine**; other assignable statuses update the FK only
+    with **no** status change.
+  - **Assignment/reassignment eligibility (final, resolved):** blocked on
+    `COMPLETED`, `CANCELED`, and `CLOSED` (`isAssignmentBlocked` in
+    `lib/jobs/status.ts`). Allowed on `DRAFT`, `SCHEDULED`, `ASSIGNED`,
+    `EN_ROUTE`, `IN_PROGRESS`, and `ON_HOLD`. `COMPLETED` is intentionally
+    broader than terminal — work is done and the agent FK is frozen until a
+    reopen (`COMPLETED → IN_PROGRESS`) restores assignability.
+- Alternatives: encode assignment as a `transitionJob` status change only
+  (rejected — reassignment is not a status change and `ASSIGNED→ASSIGNED` is
+  illegal); make `assignedUserId` non-nullable (rejected — DRAFT/SCHEDULED jobs
+  are legitimately unassigned); `onDelete: SetNull` (rejected for consistency
+  with the repo's Restrict-for-User-references convention); allow reassignment
+  of `COMPLETED` jobs (rejected — owner confirmed freeze until reopen).
+- Consequences / deferred (honest gaps, consistent with ADR-021):
+  - **Assignment auditing is NOT implemented.** `jobs-lifecycle.md` §4 and
+    `audit-logging.md` §2 require assignment/reassignment to be an audited event,
+    but no `AuditEvent` table exists yet (ADR-021 deferred it). The single-row
+    update is structured so an audit write can be added in the same transaction
+    when the audit slice lands.
+  - **Lifecycle timestamps (`assignedAt`, etc.) are NOT added.** The ticket
+    scoped the schema change to `assignedUserId` only; `jobs-lifecycle.md` §4's
+    timestamp columns remain a follow-up.
+  - **No automated test** covers the state machine / illegal-transition
+    rejection: the repo has no Vitest harness yet (adding one is a dependency
+    decision out of this ticket's scope). Rejection is enforced at runtime;
+    `jobs-lifecycle.md`'s "and tested" DoD item is outstanding.
+
 ---
 
 ## Pending / to-resolve before or during build (raise as ADRs when decided)
@@ -334,5 +381,12 @@ _All initial pending items resolved 2026-06-30 (see ADRs above). New items go he
 - ~~**P-7: Overpayment handling**~~ — **Resolved by ADR-014** (warn-and-allow).
 - **P-8: Auth-event auditing** — raised by **ADR-021** (`proposed`): no audit table exists yet, so
   logins/logouts are unaudited. Needs an owner decision on whether the next slice adds `AuditEvent`.
+- **P-10: Job assignment auditing + lifecycle timestamps** — raised by **ADR-023**: assignment /
+  reassignment is not yet audited (blocked on the `AuditEvent` table, P-8) and the `jobs-lifecycle.md`
+  §4 timestamp columns (`assignedAt`, etc.) are not persisted. Land with the audit slice / a schema
+  follow-up.
+- **P-11: State-machine test coverage** — raised by **ADR-023**: no Vitest harness exists, so the
+  illegal-transition rejection required by `jobs-lifecycle.md` §7 has no automated test. Adding a test
+  runner is its own dependency decision.
 - ~~**P-9: `Job.status` enum mismatch**~~ — **Resolved by ADR-022** (canonical 9-value set from
   `domain/jobs-lifecycle.md` confirmed; no divergence).
