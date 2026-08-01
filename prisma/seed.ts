@@ -9,6 +9,13 @@ import { JobStatus, Role } from "../lib/generated/prisma/enums";
 
 const SAMPLE_CUSTOMER_NAME = "Riverside Plaza Management";
 
+// Local-dev team accounts (dispatcher + field agents). Representative data only
+// (technical/database-prisma-postgres.md): they share the bootstrap
+// SEED_OWNER_PASSWORD so a developer can sign in as each role without new env
+// vars. Production users are created by DISPATCH/OWNER, never seeded.
+const SEED_DISPATCH_EMAIL = "dispatch@example.com";
+const SEED_FIELD_AGENT_EMAILS = ["agent1@example.com", "agent2@example.com"] as const;
+
 /**
  * Creates the first OWNER (ADR-010) — there is no self-service signup, so this
  * is the only bootstrap path. Idempotent: re-running never overwrites an
@@ -25,19 +32,12 @@ const seedEnvSchema = z.object({
     .min(12, "SEED_OWNER_PASSWORD must be at least 12 characters."),
 });
 
-async function seedFirstOwner(): Promise<void> {
-  const parsed = seedEnvSchema.safeParse(process.env);
-
-  if (!parsed.success) {
-    const problems = Object.entries(z.flattenError(parsed.error).fieldErrors)
-      .map(([key, errors]) => `  - ${key}: ${errors?.join("; ")}`)
-      .join("\n");
-
-    throw new Error(`Cannot seed the first OWNER:\n${problems}`);
-  }
-
-  const { SEED_OWNER_EMAIL: email, SEED_OWNER_PASSWORD: password } = parsed.data;
-
+/** Creates a user if the email is unseen; otherwise returns the existing id. */
+async function ensureUser(
+  email: string,
+  role: Role,
+  hashedPassword: string,
+): Promise<string> {
   const existing = await db.user.findUnique({
     where: { email },
     select: { id: true, role: true },
@@ -45,28 +45,53 @@ async function seedFirstOwner(): Promise<void> {
 
   if (existing) {
     console.log(`Seed skipped: ${email} already exists (${existing.role}).`);
-    return;
+    return existing.id;
   }
 
-  const owner = await db.user.create({
-    data: {
-      email,
-      hashedPassword: await hashPassword(password),
-      role: Role.OWNER,
-    },
+  const created = await db.user.create({
+    data: { email, hashedPassword, role },
     select: { id: true, email: true },
   });
-
-  console.log(`Seeded OWNER ${owner.email} (${owner.id}).`);
+  console.log(`Seeded ${role} ${created.email} (${created.id}).`);
+  return created.id;
 }
 
 /**
- * Foundation-ticket sample data (ADR-022): one Customer, one ServiceLocation
- * belonging to it, and one Job against that location, so the dispatch stub
- * has real rows to read through Prisma. Idempotent: no-op if the sample
- * customer already exists.
+ * Seeds the OWNER plus a dispatcher and two field agents, returning the id of
+ * the first field agent so the sample data can assign a job to a real user.
  */
-async function seedSampleJob(): Promise<void> {
+async function seedTeam(): Promise<{ firstAgentId: string }> {
+  const parsed = seedEnvSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    const problems = Object.entries(z.flattenError(parsed.error).fieldErrors)
+      .map(([key, errors]) => `  - ${key}: ${errors?.join("; ")}`)
+      .join("\n");
+
+    throw new Error(`Cannot seed users:\n${problems}`);
+  }
+
+  const { SEED_OWNER_EMAIL: ownerEmail, SEED_OWNER_PASSWORD: password } = parsed.data;
+  const hashedPassword = await hashPassword(password);
+
+  await ensureUser(ownerEmail, Role.OWNER, hashedPassword);
+  await ensureUser(SEED_DISPATCH_EMAIL, Role.DISPATCH, hashedPassword);
+
+  const agentIds = await Promise.all(
+    SEED_FIELD_AGENT_EMAILS.map((email) =>
+      ensureUser(email, Role.FIELD_AGENT, hashedPassword),
+    ),
+  );
+
+  return { firstAgentId: agentIds[0] };
+}
+
+/**
+ * Sample data: one Customer + ServiceLocation with two Jobs — a DRAFT the
+ * dispatcher can assign, and one already ASSIGNED to a field agent so the field
+ * surface has a row to show. Idempotent: no-op if the sample customer exists.
+ */
+async function seedSampleJob(assignedAgentId: string): Promise<void> {
   const existing = await db.customer.findFirst({
     where: { name: SAMPLE_CUSTOMER_NAME },
     select: { id: true },
@@ -93,9 +118,10 @@ async function seedSampleJob(): Promise<void> {
           longitude: -92.1005,
           geocoded: true,
           jobs: {
-            create: {
-              status: JobStatus.DRAFT,
-            },
+            create: [
+              { status: JobStatus.DRAFT },
+              { status: JobStatus.ASSIGNED, assignedUserId: assignedAgentId },
+            ],
           },
         },
       },
@@ -103,12 +129,14 @@ async function seedSampleJob(): Promise<void> {
     select: { id: true, name: true },
   });
 
-  console.log(`Seeded sample customer "${customer.name}" (${customer.id}) with 1 location + 1 job.`);
+  console.log(
+    `Seeded sample customer "${customer.name}" (${customer.id}) with 1 location + 2 jobs.`,
+  );
 }
 
 async function main(): Promise<void> {
-  await seedFirstOwner();
-  await seedSampleJob();
+  const { firstAgentId } = await seedTeam();
+  await seedSampleJob(firstAgentId);
 }
 
 main()
