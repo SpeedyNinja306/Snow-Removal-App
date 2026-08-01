@@ -7,6 +7,7 @@ appliesTo:
   - rbac
 files:
   - "**/auth/**"
+  - "**/proxy.ts"
   - "**/middleware.ts"
   - "**/lib/auth/**"
   - "**/lib/authz/**"
@@ -68,8 +69,11 @@ narrower surface**, not a subset.
   reads) and deny if the user is deactivated or the role no longer permits the action.
 
 ## 4. Implementation guidance
-- Centralize checks in a `lib/authz` module: `requireRole(role)`, `requireOwnerOfJob(jobId)`,
+- Centralize checks in a `lib/authz` module: `requireRoles(roles)`, `requireOwnerOfJob(jobId)`,
   `can(user, action, resource)`. Actions call these first.
+- `proxy.ts` (Next.js 16's renamed middleware, ADR-019) only sees the session cookie, so it is an
+  optimistic pre-check. Gate each surface in its `layout.tsx` **and** in every page — layouts do not
+  re-render on client-side navigation. The route→role map lives once in `lib/authz/routes.ts`.
 - Encode role in the session; **re-fetch `active` + role from the DB on every sensitive mutation**
   (see ADR-015 interim mitigation until session invalidation fast-follow ships).
 - UI hiding is a convenience, never the enforcement boundary.

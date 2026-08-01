@@ -73,11 +73,16 @@ AGENTS.md                     ← you are here
 docker-compose.yml            ← local Postgres for dev (prod = Neon, ADR-013)
 docs/
   product-spec.md             ← concrete MVP spec (users, features, workflows, non-goals)
-  decision-log.md             ← append-only record of decisions (ADR-001…017)
+  decision-log.md             ← append-only record of decisions (ADR-001…021)
   steering/
     _index.md                 ← catalog mapping every .mdc rule + "what to open first"
     _loading-strategy.md      ← context-minimization + Task Routing Matrix
     foundation/ domain/ technical/ process/   ← detailed reference docs (1:1 with .mdc rules)
+app/                          ← App Router route groups: (auth), (field), (admin)
+components/                   ← shared UI (components/ui = shadcn primitives)
+lib/                          ← non-route code: auth, authz, db, env, feature logic
+prisma/                       ← schema, migrations, seed
+proxy.ts                      ← request pre-check; Next 16's renamed middleware (ADR-019)
 ```
 
 ## 5. Inclusion model (how rules attach in Cursor)

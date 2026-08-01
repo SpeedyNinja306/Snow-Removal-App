@@ -17,6 +17,8 @@ node_modules/
 out/
 build/
 dist/
+next-env.d.ts
+*.tsbuildinfo
 
 # Production / bundlers
 .turbo/
@@ -30,6 +32,8 @@ test-results/
 # Prisma (keep schema + migrations; ignore local generated artifacts if any)
 prisma/*.db
 prisma/*.db-journal
+# Prisma 7 generates the client into the repo; it is rebuilt by `npm run db:generate`
+lib/generated/
 
 # Logs
 *.log
