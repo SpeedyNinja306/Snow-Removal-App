@@ -8,6 +8,10 @@
 #
 # The default credentials below match the local DATABASE_URL in .env.example.
 
+# Fixed project name so the container and the `sr_app_pgdata` volume are reused
+# no matter what the checkout directory is called.
+name: sr-app
+
 services:
   postgres:
     image: postgres:16-alpine

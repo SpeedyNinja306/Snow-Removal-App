@@ -1,0 +1,38 @@
+// SR-App data model (ADR-002: PostgreSQL via Prisma as the sole data layer).
+//
+// Scaffold scope: only User + Role exist. Customers, service locations, jobs,
+// trucks, invoices, payments, time entries, notes, photos, location pings and
+// audit events are added by their own feature tickets.
+//
+// Prisma 7 (ADR-020): the datasource carries no `url`. The CLI reads the
+// connection string from `prisma.config.ts`; the runtime client passes one
+// through the `@prisma/adapter-pg` driver adapter (see `lib/db/index.ts`).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  DISPATCH
+  FIELD_AGENT
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  role           Role
+  // Deactivation instead of deletion: users are referenced by operational
+  // history, and authorization re-reads `active` on every request (ADR-015).
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("users")
+}

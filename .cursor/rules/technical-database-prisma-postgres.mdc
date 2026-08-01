@@ -9,6 +9,11 @@ alwaysApply: false
 Detailed reference: `docs/steering/technical/database-prisma-postgres.md`. Migration *process* is in
 the schema-change rule. Local dev = docker Postgres; prod = Neon pooled `DATABASE_URL` + `DIRECT_URL` (ADR-013).
 
+**Prisma 7 wiring (ADR-020):** client is generated to `lib/generated/prisma` (git-ignored; run
+`npm run db:generate`); runtime queries use the `@prisma/adapter-pg` adapter with pooled
+`DATABASE_URL` via `lib/db`; migrations read direct `DIRECT_URL` from `prisma.config.ts` (the
+datasource block has no `url`, and `directUrl` no longer exists).
+
 **Hard rules — relational integrity**
 - **Prisma is the only data-access layer.** No raw SQL except vetted parameterized cases (ADR); never concatenate SQL.
 - **Every relation has an explicit FK with a defined `onDelete`.** Default `Restrict` for operational history (jobs, invoices, payments, users) — **prefer soft-delete/deactivate over cascade**. Use `Cascade` only for truly owned children (e.g. invoice line items) and justify it.

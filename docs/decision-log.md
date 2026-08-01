@@ -229,6 +229,72 @@ ambiguity by guessing.
 - Consequences: Aligns `product-spec.md` §6/§7 with ADR-011 and `foundation/non-goals.md`. A
   multi-rate/jurisdictional engine still requires a new ADR.
 
+## Build decisions
+
+### ADR-018: Password hashing uses `@node-rs/argon2`
+- Date: 2026-07-31
+- Status: accepted
+- Context: ADR-010 mandates argon2id but names no implementation. The two realistic Node options are
+  the C-binding `argon2` package (node-gyp build) and the Rust/NAPI `@node-rs/argon2` package.
+- Decision: Use **`@node-rs/argon2`** with argon2id and the OWASP-recommended parameters
+  (memoryCost 19456 KiB, timeCost 2, parallelism 1), centralized in `lib/auth/password.ts`.
+- Alternatives: `argon2` (needs a native toolchain — fragile on Windows dev machines and on
+  serverless build images); bcrypt/scrypt (would contradict ADR-010).
+- Consequences: Prebuilt binaries, no compiler needed locally or on Vercel. Hashing must stay on the
+  Node.js runtime — it cannot run in an edge-runtime code path. Changing the parameters invalidates
+  nothing (they are encoded in each stored hash), so tuning later is safe.
+
+### ADR-019: Route pre-checks live in `proxy.ts`; layouts and pages remain the authority
+- Date: 2026-07-31
+- Status: accepted
+- Context: The scaffold ticket asked for `middleware.ts`, but Next.js 16 deprecated and renamed that
+  file convention to `proxy.ts` (Proxy also now defaults to the Node.js runtime). Next's own auth
+  guidance additionally warns that Proxy and layouts are optimistic checks: Proxy sees only the
+  cookie, and layouts do not re-render on client-side navigation.
+- Decision: Implement the request pre-check as **`proxy.ts`** (the current convention for the
+  installed Next.js version) and treat it as defense in depth only. The authoritative gate is
+  `requireRoles()` from `lib/authz`, called in **both** the surface layout and every page, which
+  re-reads role and `active` from the database. The route→role map lives once in
+  `lib/authz/routes.ts` and is shared by both layers.
+- Alternatives: Keep a deprecated `middleware.ts` (works today, warns, and is on a removal path);
+  pin Next.js 15 to preserve the old filename (holds the whole app back for a filename); rely on
+  Proxy alone (Next explicitly advises against it, and it would trust the cookie's role claim).
+- Consequences: Verified by disabling `proxy.ts` and re-running the access tests — a `FIELD_AGENT`
+  is still blocked from `/dispatch` and `/owner`, so enforcement does not depend on the proxy.
+  Affects `domain/auth-roles.md` (file globs now include `proxy.ts`).
+
+### ADR-020: Prisma 7 — generated client in-repo, `pg` driver adapter, `DIRECT_URL` in `prisma.config.ts`
+- Date: 2026-07-31
+- Status: accepted
+- Context: Prisma 7 changes what ADR-002/ADR-013 assumed: the `prisma-client` generator replaces
+  `prisma-client-js` and requires an explicit output path, the Rust query engine is gone in favour of
+  driver adapters, the datasource block no longer carries a `url`, the `directUrl` field was removed,
+  and the CLI no longer loads `.env` by itself.
+- Decision: Keep Prisma as the only data-access layer and express ADR-013's two-connection split
+  under the new API: the generated client goes to `lib/generated/prisma` (git-ignored, rebuilt by
+  `postinstall`/`npm run db:generate`); runtime queries use `@prisma/adapter-pg` with the **pooled**
+  `DATABASE_URL` (`lib/db/index.ts`); migrations use the **direct** `DIRECT_URL` via
+  `prisma.config.ts`. Env files are loaded for CLI/seed use by `lib/load-env-files.ts` (dotenv).
+- Alternatives: Pin Prisma 6 to keep `directUrl` and `node_modules` generation (starts the project on
+  an outdated major); commit the generated client (large, churny diffs); swap ORM (would reverse ADR-002).
+- Consequences: `.env.example` stays correct — both variables are still used, just wired differently.
+  CI must run `prisma generate` before typecheck. `prisma generate` deliberately reads `process.env`
+  instead of Prisma's `env()` helper so it works in CI without any database URL.
+
+### ADR-021: Auth-event auditing deferred to the auth feature slice
+- Date: 2026-07-31
+- Status: proposed
+- Context: `domain/audit-logging.md` requires login success/failure, logout, role change and
+  activate/deactivate to be audited, but the scaffold ticket restricts the schema to a single `User`
+  model, so there is no `AuditEvent` table to write to.
+- Decision (proposed): Ship the scaffold without auth auditing and record the gap here rather than
+  either violating the ticket scope or silently dropping an audit requirement. The `AuditEvent` model
+  and login/logout auditing land with the first slice that introduces the audit table.
+- Alternatives: Add an `AuditEvent` model now (contradicts the ticket's explicit "User model only");
+  log auth events to stdout only (an untrustworthy, non-queryable trail that looks like compliance).
+- Consequences: Until that slice ships, failed and successful logins are not recorded anywhere. Any
+  ticket that adds the audit table must also cover the auth events listed in `domain/audit-logging.md`.
+
 ---
 
 ## Pending / to-resolve before or during build (raise as ADRs when decided)
@@ -240,3 +306,5 @@ _All initial pending items resolved 2026-06-30 (see ADRs above). New items go he
 - ~~**P-5: Concurrent-timer behavior**~~ — **Resolved by ADR-012** (auto-stop previous).
 - ~~**P-6: Hosting/deploy target + managed Postgres**~~ — **Resolved by ADR-013** (Vercel + Neon).
 - ~~**P-7: Overpayment handling**~~ — **Resolved by ADR-014** (warn-and-allow).
+- **P-8: Auth-event auditing** — raised by **ADR-021** (`proposed`): no audit table exists yet, so
+  logins/logouts are unaudited. Needs an owner decision on whether the next slice adds `AuditEvent`.
