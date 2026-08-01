@@ -5,7 +5,9 @@ import { z } from "zod";
 
 import { hashPassword } from "../lib/auth/password";
 import { db } from "../lib/db";
-import { Role } from "../lib/generated/prisma/enums";
+import { JobStatus, Role } from "../lib/generated/prisma/enums";
+
+const SAMPLE_CUSTOMER_NAME = "Riverside Plaza Management";
 
 /**
  * Creates the first OWNER (ADR-010) — there is no self-service signup, so this
@@ -23,7 +25,7 @@ const seedEnvSchema = z.object({
     .min(12, "SEED_OWNER_PASSWORD must be at least 12 characters."),
 });
 
-async function main(): Promise<void> {
+async function seedFirstOwner(): Promise<void> {
   const parsed = seedEnvSchema.safeParse(process.env);
 
   if (!parsed.success) {
@@ -56,6 +58,57 @@ async function main(): Promise<void> {
   });
 
   console.log(`Seeded OWNER ${owner.email} (${owner.id}).`);
+}
+
+/**
+ * Foundation-ticket sample data (ADR-022): one Customer, one ServiceLocation
+ * belonging to it, and one Job against that location, so the dispatch stub
+ * has real rows to read through Prisma. Idempotent: no-op if the sample
+ * customer already exists.
+ */
+async function seedSampleJob(): Promise<void> {
+  const existing = await db.customer.findFirst({
+    where: { name: SAMPLE_CUSTOMER_NAME },
+    select: { id: true },
+  });
+
+  if (existing) {
+    console.log(`Seed skipped: sample customer "${SAMPLE_CUSTOMER_NAME}" already exists.`);
+    return;
+  }
+
+  const customer = await db.customer.create({
+    data: {
+      name: SAMPLE_CUSTOMER_NAME,
+      phone: "218-555-0100",
+      email: "ops@riversideplaza.example",
+      billingNotes: "Net 30. PO number required on invoices.",
+      serviceLocations: {
+        create: {
+          addressLine1: "482 Riverside Ave",
+          city: "Duluth",
+          state: "MN",
+          postalCode: "55802",
+          latitude: 46.7867,
+          longitude: -92.1005,
+          geocoded: true,
+          jobs: {
+            create: {
+              status: JobStatus.DRAFT,
+            },
+          },
+        },
+      },
+    },
+    select: { id: true, name: true },
+  });
+
+  console.log(`Seeded sample customer "${customer.name}" (${customer.id}) with 1 location + 1 job.`);
+}
+
+async function main(): Promise<void> {
+  await seedFirstOwner();
+  await seedSampleJob();
 }
 
 main()

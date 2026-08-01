@@ -1,8 +1,14 @@
 // SR-App data model (ADR-002: PostgreSQL via Prisma as the sole data layer).
 //
-// Scaffold scope: only User + Role exist. Customers, service locations, jobs,
-// trucks, invoices, payments, time entries, notes, photos, location pings and
+// Scaffold scope: User, Customer, ServiceLocation and Job (foundation only —
+// no assignment, invoicing, notes/photos, or status-transition logic yet).
+// Trucks, invoices, payments, time entries, notes, photos, location pings and
 // audit events are added by their own feature tickets.
+//
+// Job.status mirrors the canonical 9-state lifecycle in
+// docs/steering/domain/jobs-lifecycle.md section 2 exactly (ADR-022,
+// resolved). No transition allow-list/state machine exists yet — this
+// ticket is schema-only.
 //
 // Prisma 7 (ADR-020): the datasource carries no `url`. The CLI reads the
 // connection string from `prisma.config.ts`; the runtime client passes one
@@ -35,4 +41,88 @@ model User {
   updatedAt      DateTime @updatedAt
 
   @@map("users")
+}
+
+// Canonical lifecycle states (domain/jobs-lifecycle.md section 2; ADR-022).
+// The transition allow-list and state machine are out of scope for this
+// schema-only ticket — no enforcement exists yet.
+enum JobStatus {
+  DRAFT
+  SCHEDULED
+  ASSIGNED
+  EN_ROUTE
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELED
+  CLOSED
+}
+
+model Customer {
+  id    String @id @default(cuid())
+  name  String
+  phone String?
+  email String?
+  // domain/customers-service-locations.md: "optional billing notes".
+  billingNotes String?
+  // Deactivation instead of deletion: customers are referenced by jobs and
+  // must never be hard-deleted once operational history exists.
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceLocations ServiceLocation[]
+
+  @@index([active])
+  @@map("customers")
+}
+
+model ServiceLocation {
+  id         String @id @default(cuid())
+  customerId String
+  // Restrict, not cascade: a location with job history must be deactivated,
+  // never removed by deleting its customer (domain/customers-service-locations.md).
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  // domain/customers-service-locations.md: "optional unit/access notes".
+  accessNotes String?
+
+  // Geocoded once at save time and persisted (ADR-009); never geocoded per
+  // map render. `geocoded=false` + null coords means geocoding hasn't run or
+  // failed yet — manual coordinates are allowed in that case.
+  latitude  Float?
+  longitude Float?
+  geocoded  Boolean @default(false)
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+
+  @@index([customerId])
+  @@index([active])
+  @@map("service_locations")
+}
+
+model Job {
+  id                String @id @default(cuid())
+  serviceLocationId String
+  // Restrict: jobs are operational history and must never disappear via a
+  // cascaded delete of their location.
+  serviceLocation ServiceLocation @relation(fields: [serviceLocationId], references: [id], onDelete: Restrict)
+
+  status JobStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceLocationId])
+  @@index([status])
+  @@map("jobs")
 }

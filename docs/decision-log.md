@@ -295,6 +295,32 @@ ambiguity by guessing.
 - Consequences: Until that slice ships, failed and successful logins are not recorded anywhere. Any
   ticket that adds the audit table must also cover the auth events listed in `domain/audit-logging.md`.
 
+### ADR-022: Job.status mirrors the canonical jobs-lifecycle.md set exactly — no divergence accepted
+- Date: 2026-07-31
+- Status: accepted
+- Context: `domain/jobs-lifecycle.md` fixes a canonical 9-value `JobStatus` set (`DRAFT`,
+  `SCHEDULED`, `ASSIGNED`, `EN_ROUTE`, `IN_PROGRESS`, `ON_HOLD`, `COMPLETED`, `CANCELED`,
+  `CLOSED`) with a full transition allow-list, and `technical/database-prisma-postgres.md` requires
+  Prisma enums to mirror canonical sets exactly. The foundation ticket that first introduced
+  `Customer`, `ServiceLocation` and `Job` shipped a different, smaller set instead — `PENDING`,
+  `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `INVOICED` — flagged here (originally `proposed`) for an
+  owner decision before any assignment/transition logic was built on top of `Job`.
+- Decision: **Resolved — the canonical 9-value set from `domain/jobs-lifecycle.md` section 2 is
+  confirmed as the correct set.** No divergence accepted. `Job.status` now uses exactly `DRAFT |
+  SCHEDULED | ASSIGNED | EN_ROUTE | IN_PROGRESS | ON_HOLD | COMPLETED | CANCELED | CLOSED`, applied
+  via a breaking migration (`process/schema-change-policy.md` expand→backfill→contract) that
+  explicitly backfilled existing rows: `PENDING → DRAFT`, `INVOICED → CLOSED`. The transition
+  allow-list and state machine (`lib/jobs/status`) remain out of scope for a future ticket — this
+  resolution covers only the enum shape.
+- Alternatives: Keep the divergent 5-value set permanently (would have required its own superseding
+  ADR and left `Job.status` permanently out of step with the governing domain rule and with any
+  future assignment/invoicing work that reads job status); leave the enum divergent and re-flag at
+  assignment time (defers a decision that's already been made, with no new information expected).
+- Consequences: `Job.status` and `domain/jobs-lifecycle.md` are now aligned; assignment/transition
+  work can build the `lib/jobs/status` state machine directly against this enum without a further
+  schema change. `INVOICED` no longer exists as a job state — invoice-driven completion is
+  represented by `COMPLETED → CLOSED` per the canonical lifecycle once invoicing exists.
+
 ---
 
 ## Pending / to-resolve before or during build (raise as ADRs when decided)
@@ -308,3 +334,5 @@ _All initial pending items resolved 2026-06-30 (see ADRs above). New items go he
 - ~~**P-7: Overpayment handling**~~ — **Resolved by ADR-014** (warn-and-allow).
 - **P-8: Auth-event auditing** — raised by **ADR-021** (`proposed`): no audit table exists yet, so
   logins/logouts are unaudited. Needs an owner decision on whether the next slice adds `AuditEvent`.
+- ~~**P-9: `Job.status` enum mismatch**~~ — **Resolved by ADR-022** (canonical 9-value set from
+  `domain/jobs-lifecycle.md` confirmed; no divergence).
