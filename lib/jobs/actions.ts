@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { recordAuditEvent } from "@/lib/audit/log";
 import { getSessionUser } from "@/lib/authz";
 import { DISPATCH_HOME, FIELD_HOME } from "@/lib/authz/routes";
 import { db } from "@/lib/db";
@@ -82,12 +83,33 @@ export async function assignJob(input: AssignJobInput): Promise<AssignJobResult>
     assertTransition(job.status, JobStatus.ASSIGNED);
   }
 
-  await db.job.update({
-    where: { id: jobId },
-    data: {
-      assignedUserId: userId,
-      ...(transitionsToAssigned ? { status: JobStatus.ASSIGNED } : {}),
-    },
+  const previousAssignedUserId = job.assignedUserId;
+
+  // The assignment write and its audit record share one transaction: if either
+  // fails, neither persists, so a committed reassignment always leaves a trail
+  // (domain/audit-logging.md section 4). Reaching this point means every guard
+  // above passed, so a rejected attempt never opens a transaction and never
+  // writes an audit event.
+  await db.$transaction(async (tx) => {
+    await tx.job.update({
+      where: { id: jobId },
+      data: {
+        assignedUserId: userId,
+        ...(transitionsToAssigned ? { status: JobStatus.ASSIGNED } : {}),
+      },
+    });
+
+    await recordAuditEvent(tx, {
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: "job.assigned",
+      entityType: "Job",
+      entityId: jobId,
+      summary: previousAssignedUserId
+        ? `Reassigned job from ${previousAssignedUserId} to ${userId}.`
+        : `Assigned job to ${userId}.`,
+      metadata: { previousAssignedUserId, newAssignedUserId: userId },
+    });
   });
 
   // Reassignment revokes the previous agent's access to the job (their field
