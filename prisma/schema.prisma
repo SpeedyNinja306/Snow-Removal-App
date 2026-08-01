@@ -43,6 +43,10 @@ model User {
   // Jobs currently assigned to this user as the field agent (ADR-023).
   assignedJobs Job[] @relation("JobAssignee")
 
+  // Audit-trail entries this user performed (domain/audit-logging.md). Restrict
+  // (via AuditEvent) keeps the actor referenced by history from being deleted.
+  auditEvents AuditEvent[] @relation("AuditActor")
+
   @@map("users")
 }
 
@@ -137,4 +141,41 @@ model Job {
   @@index([status])
   @@index([assignedUserId])
   @@map("jobs")
+}
+
+// Immutable "who did what, when" trail for operationally significant actions
+// (domain/audit-logging.md). Append-only by design: there is deliberately no
+// `updatedAt` and no delete path — records are never modified once written, and
+// every audit write happens in the same transaction as the change it records
+// (section 4). This ticket wires only job assignment; other auditable events
+// (auth, status transitions, invoices, payments) are added by their own tickets.
+model AuditEvent {
+  id String @id @default(cuid())
+
+  // Server-time UTC insert clock. There is intentionally no `updatedAt`.
+  occurredAt DateTime @default(now())
+
+  // A null actor denotes a system-originated event (domain/audit-logging.md
+  // section 3). Restrict mirrors the deactivate-over-delete rule: an actor
+  // referenced by the trail is soft-deactivated, never hard-deleted.
+  actorUserId String?
+  actorUser   User?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorRole   Role?
+
+  // Stable action key (e.g. "job.assigned") plus the affected record. Kept as a
+  // string rather than an enum so new auditable actions don't require a
+  // migration; the canonical list lives in domain/audit-logging.md section 2.
+  action     String
+  entityType String
+  entityId   String
+
+  summary String
+  // Small structured context (e.g. { from, to, reason }). Never store secrets
+  // or PII beyond what is necessary (domain/audit-logging.md section 4).
+  metadata Json?
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+  @@index([occurredAt])
+  @@map("audit_events")
 }
