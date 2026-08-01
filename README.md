@@ -32,7 +32,11 @@ npm run dev
 ```
 
 Generate `AUTH_SECRET` with `openssl rand -base64 32`. `SEED_OWNER_PASSWORD` must be at least
-12 characters. Sign in at `/`, which forwards each role to its own surface.
+12 characters. Then open http://localhost:3500 and sign in; `/` forwards each role to its surface.
+
+`npm run dev` uses port **3500**, not Next's default 3000, because Windows/Hyper-V commonly reserves
+the 2850–3481 range and binding there fails with `EACCES`. If you change the port, change `AUTH_URL`
+and `APP_URL` in `.env.local` to match, or Auth.js callbacks will point at the wrong origin.
 
 ## Scripts
 
