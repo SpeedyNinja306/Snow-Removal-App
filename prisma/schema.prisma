@@ -47,6 +47,9 @@ model User {
   // (via AuditEvent) keeps the actor referenced by history from being deleted.
   auditEvents AuditEvent[] @relation("AuditActor")
 
+  // General shift clock-in/out records (not job-linked labor time).
+  timeEntries TimeEntry[]
+
   @@map("users")
 }
 
@@ -192,4 +195,25 @@ model AuditEvent {
   @@index([actorUserId])
   @@index([occurredAt])
   @@map("audit_events")
+}
+
+// General shift time tracking for field agents (clock in/out). Deliberately
+// not linked to a Job — this records "on shift" presence, not per-job labor
+// time (see product decision; job labor time is a separate future slice).
+model TimeEntry {
+  id String @id @default(cuid())
+
+  userId String
+  // Restrict: time entries are operational history; users are deactivated, not
+  // hard-deleted (domain/auth-roles.md).
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  clockInAt  DateTime  @default(now())
+  clockOutAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([clockOutAt])
+  @@map("time_entries")
 }
