@@ -134,6 +134,20 @@ model Job {
 
   status JobStatus @default(DRAFT)
 
+  // Why the job was placed ON_HOLD (domain/jobs-lifecycle.md section 4 requires
+  // ON_HOLD to carry a reason). Nullable: only meaningful for ON_HOLD, so it is
+  // absent on every other status. The updateJobStatus action enforces that a
+  // non-empty reason accompanies an ON_HOLD transition; the DB does not encode
+  // that domain rule. Not cleared when the job resumes — the audit trail is the
+  // authoritative history of each pause.
+  holdReason String?
+
+  // Why the job was CANCELED (domain/jobs-lifecycle.md section 4 requires
+  // CANCELED to carry a reason). Nullable and mirrors holdReason: only set on
+  // the CANCELED transition (dispatcher-only), enforced in updateJobStatus, not
+  // by the DB. CANCELED is terminal, so this is written once.
+  cancelReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -61,6 +61,16 @@ export function canTransition(from: JobStatus, to: JobStatus): boolean {
   return LEGAL_TRANSITIONS[from].includes(to);
 }
 
+/**
+ * The statuses a job in `from` may legally move to, straight from the single
+ * allow-list. UI surfaces derive their available actions from this (never a
+ * hardcoded per-screen list, per domain/jobs-lifecycle.md section 5); the
+ * server still re-validates every transition regardless of what the UI shows.
+ */
+export function legalNextStatuses(from: JobStatus): readonly JobStatus[] {
+  return LEGAL_TRANSITIONS[from];
+}
+
 /** Thrown when a caller attempts a transition the allow-list forbids. */
 export class IllegalJobTransitionError extends Error {
   constructor(
