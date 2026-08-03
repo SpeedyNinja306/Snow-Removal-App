@@ -9,6 +9,7 @@ import {
   listJobsForDispatchBoard,
 } from "@/lib/jobs/queries";
 import { isAssignmentBlocked } from "@/lib/jobs/status";
+import { listCurrentlyClockedInAgents } from "@/lib/time/queries";
 
 import { AssignAgentSelect } from "./assign-agent-select";
 
@@ -18,9 +19,10 @@ export const metadata = {
 
 export default async function DispatchHomePage() {
   const user = await requireRoles(ADMIN_ROLES);
-  const [jobs, agents] = await Promise.all([
+  const [jobs, agents, clockedInAgents] = await Promise.all([
     listJobsForDispatchBoard(),
     listActiveFieldAgents(),
+    listCurrentlyClockedInAgents(),
   ]);
 
   return (
@@ -32,6 +34,24 @@ export default async function DispatchHomePage() {
         is not yet the full dispatch board.
       </p>
       <SessionProof user={user} allowedRoles={ADMIN_ROLES} />
+
+      <section className="mt-4 rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <h2 className="text-sm font-semibold text-slate-200">Clocked in now</h2>
+        {clockedInAgents.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-400">No agents are clocked in.</p>
+        ) : (
+          <ul className="mt-2 space-y-1 text-sm">
+            {clockedInAgents.map((agent) => (
+              <li key={agent.timeEntryId} className="text-slate-300">
+                {agent.email}{" "}
+                <span className="text-slate-500">
+                  (since {agent.clockInAt.toLocaleTimeString()})
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <table className="mt-4 border border-slate-700 text-sm">
         <thead>
