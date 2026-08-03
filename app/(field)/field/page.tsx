@@ -1,7 +1,10 @@
 import { SessionProof } from "@/components/session-proof";
 import { requireRoles } from "@/lib/authz";
-import { Role } from "@/lib/generated/prisma/enums";
+import { JobStatus, Role } from "@/lib/generated/prisma/enums";
 import { listJobsForAgent } from "@/lib/jobs/queries";
+import { legalNextStatuses } from "@/lib/jobs/status";
+
+import { JobStatusControl } from "./job-status-control";
 
 const ALLOWED_ROLES = [Role.FIELD_AGENT] as const;
 
@@ -21,8 +24,9 @@ export default async function FieldHomePage() {
     <section>
       <h1 className="text-xl font-semibold">My work</h1>
       <p className="mt-1 text-sm text-slate-400">
-        Jobs assigned to you. Status updates, time, notes, photos and invoicing
-        arrive with their own feature tickets.
+        Jobs assigned to you. Advance a job through its legal next statuses
+        below. Time, notes, photos and invoicing arrive with their own feature
+        tickets.
       </p>
       <SessionProof user={user} allowedRoles={ALLOWED_ROLES} />
 
@@ -32,25 +36,35 @@ export default async function FieldHomePage() {
             No jobs assigned to you yet.
           </li>
         ) : (
-          jobs.map((job) => (
-            <li
-              key={job.id}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">
-                  {job.serviceLocation.customer.name}
-                </span>
-                <span className="rounded-md border border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-300">
-                  {job.status}
-                </span>
-              </div>
-              <p className="mt-1 text-slate-400">
-                {job.serviceLocation.addressLine1}, {job.serviceLocation.city},{" "}
-                {job.serviceLocation.state}
-              </p>
-            </li>
-          ))
+          jobs.map((job) => {
+            // Options come straight from the state machine; CANCELED is removed
+            // because cancellation is dispatcher-only (the action rejects it
+            // from a field agent), so offering it here would mislead.
+            const nextStatuses = legalNextStatuses(job.status).filter(
+              (status) => status !== JobStatus.CANCELED,
+            );
+
+            return (
+              <li
+                key={job.id}
+                className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">
+                    {job.serviceLocation.customer.name}
+                  </span>
+                  <span className="rounded-md border border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-300">
+                    {job.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-slate-400">
+                  {job.serviceLocation.addressLine1}, {job.serviceLocation.city},{" "}
+                  {job.serviceLocation.state}
+                </p>
+                <JobStatusControl jobId={job.id} nextStatuses={nextStatuses} />
+              </li>
+            );
+          })
         )}
       </ul>
     </section>
