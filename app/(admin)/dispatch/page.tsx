@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SessionProof } from "@/components/session-proof";
 import { requireRoles } from "@/lib/authz";
 import { ADMIN_ROLES, OWNER_HOME } from "@/lib/authz/routes";
-import { Role } from "@/lib/generated/prisma/enums";
+import { JobStatus, Role } from "@/lib/generated/prisma/enums";
 import {
   listActiveFieldAgents,
   listJobsForDispatchBoard,
@@ -12,10 +12,30 @@ import { isAssignmentBlocked } from "@/lib/jobs/status";
 import { listCurrentlyClockedInAgents } from "@/lib/time/queries";
 
 import { AssignAgentSelect } from "./assign-agent-select";
+import { CancelJobButton } from "./cancel-job-button";
+import { JobStatusBadge } from "./job-status-badge";
 
 export const metadata = {
   title: "Dispatch · SR-App",
 };
+
+// A job in one of these statuses can no longer be canceled from the board, so
+// the cancel control is withheld before render (the server action is still the
+// authority). CANCELED/CLOSED are terminal; COMPLETED is not, but its only legal
+// moves are CLOSED / reopen, neither of which is cancellation.
+const CANCEL_HIDDEN_STATUSES: readonly JobStatus[] = [
+  JobStatus.COMPLETED,
+  JobStatus.CANCELED,
+  JobStatus.CLOSED,
+];
+
+function formatCreatedAt(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default async function DispatchHomePage() {
   const user = await requireRoles(ADMIN_ROLES);
@@ -62,12 +82,13 @@ export default async function DispatchHomePage() {
             <th className="border border-slate-700 px-2 py-1 text-left">Status</th>
             <th className="border border-slate-700 px-2 py-1 text-left">Assigned agent</th>
             <th className="border border-slate-700 px-2 py-1 text-left">Created</th>
+            <th className="border border-slate-700 px-2 py-1 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
           {jobs.length === 0 ? (
             <tr>
-              <td className="border border-slate-700 px-2 py-1" colSpan={6}>
+              <td className="border border-slate-700 px-2 py-1" colSpan={7}>
                 No jobs yet.
               </td>
             </tr>
@@ -82,7 +103,9 @@ export default async function DispatchHomePage() {
                   {job.serviceLocation.addressLine1}, {job.serviceLocation.city},{" "}
                   {job.serviceLocation.state}
                 </td>
-                <td className="border border-slate-700 px-2 py-1">{job.status}</td>
+                <td className="border border-slate-700 px-2 py-1">
+                  <JobStatusBadge status={job.status} />
+                </td>
                 <td className="border border-slate-700 px-2 py-1 align-top">
                   <AssignAgentSelect
                     jobId={job.id}
@@ -93,7 +116,14 @@ export default async function DispatchHomePage() {
                   />
                 </td>
                 <td className="border border-slate-700 px-2 py-1">
-                  {job.createdAt.toISOString()}
+                  {formatCreatedAt(job.createdAt)}
+                </td>
+                <td className="border border-slate-700 px-2 py-1 align-top">
+                  {CANCEL_HIDDEN_STATUSES.includes(job.status) ? (
+                    <span className="text-sm text-slate-500">—</span>
+                  ) : (
+                    <CancelJobButton jobId={job.id} />
+                  )}
                 </td>
               </tr>
             ))
